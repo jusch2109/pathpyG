@@ -30,11 +30,9 @@
 			"ms-toolsai.jupyter"
 		]
 	},
-	// Use GPU for CUDA
+
 	"runArgs": [
-		"-it",
-		"--gpus",
-		"all"
+		"-it"
 	],
 	// Install pathpyG as editable python package
 	"postCreateCommand": "pip install -e '.[dev,test,doc]' && git config --global --add safe.directory /workspaces/pathpyG"
