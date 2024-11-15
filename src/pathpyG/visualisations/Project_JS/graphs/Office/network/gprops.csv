@@ -1,0 +1,11 @@
+# prop_name, value
+name,sp_office
+description,"A temporal network of contacts between individuals, measured in an office building in France, from June 24 to July 3, 2013.
+
+The data set comprises two files. The first one contains a tab-separated list representing the active contacts during 20-second intervals of the data collection. Each line has the form “t i j”, where i and j are the anonymous IDs of the persons in contact, and the interval during which this contact was active is [ t – 20s, t ] (t is expressed in seconds since the time origin taken as 0:00 on June 24, 2013).
+
+The second file contains a list of the form “i Di” where i is the anonymous ID of an individual and Di the name of his/her department in the workplace.
+"
+citation,"['M. Génois et al., \"Data on face-to-face contacts in an office building suggest a low-cost vaccination strategy based on community linkers.\" Network Science 3(3), 326-347 (2015), https://www.cambridge.org/core/journals/network-science/article/data-on-facetoface-contacts-in-an-office-building-suggest-a-lowcost-vaccination-strategy-based-on-community-linkers/18AB49AB4F2AEA33CE7501F06ADBC8E8']"
+url,http://www.sociopatterns.org/datasets/contacts-in-a-workplace/
+tags,"['Social', 'Offline', 'Weighted', 'Temporal', 'Metadata']"
