@@ -16,7 +16,7 @@ def HotVis(data: pp.TemporalGraph|pp.PathData, orders: int, iterations: int, del
     if alpha is None:
         alpha = torch.ones(orders)
     if initial_positions is None:
-        initial_positions = torch.rand((mo_model.layers[1].N, 2))
+        initial_positions = torch.rand((mo_model.layers[1].N, 2))*100
     A = torch.zeros((mo_model.layers[1].N, mo_model.layers[1].N))
 
     # iterate over higher orders
@@ -89,7 +89,7 @@ def HotVisSlow(data: pp.TemporalGraph | pp.PathData, orders: int, iterations: in
     if alpha is None:
         alpha = torch.ones(orders)
     if initial_positions is None:
-        initial_positions = torch.rand((mo_model.layers[1].N, 2))
+        initial_positions = torch.rand((mo_model.layers[1].N, 2))*100
     A = torch.zeros((mo_model.layers[1].N, mo_model.layers[1].N))
 
     for i in range(orders):
