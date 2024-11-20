@@ -344,3 +344,14 @@ def edge_intersection(A1, A2, B1, B2):
 def is_on_segment(p, q, r):
     return (torch.min(torch.tensor([p[0], r[0]])) <= q[0] <= torch.max(torch.tensor([p[0], r[0]]))) and \
            (torch.min(torch.tensor([p[1], r[1]])) <= q[1] <= torch.max(torch.tensor([p[1], r[1]])))
+
+
+def cluster_distance_ratio(graph: pp.TemporalGraph, cluster, layout):
+    distance_clusters = torch.zeros(len(cluster))
+    for idx,c in enumerate(cluster):
+        barycentre_cluster = barycentre(layout, c)
+        mean_distance_cluster = torch.mean(torch.stack([torch.norm(torch.tensor(layout[node])-barycentre_cluster) for node in c])) 
+        mean_distance_all = torch.mean(torch.stack([torch.norm(torch.tensor(layout[node])-barycentre_cluster) for node in graph.nodes])) 
+        distance_clusters[idx] = mean_distance_cluster / mean_distance_all
+    
+    return distance_clusters
