@@ -348,7 +348,7 @@ def is_on_segment(p, q, r):
 
 def cluster_distance_ratio(graph: pp.TemporalGraph, cluster, layout):
     distance_clusters = torch.zeros(len(cluster))
-    for idx,c in enumerate(cluster):
+    for idx, c in enumerate(cluster):
         barycentre_cluster = barycentre(layout, c)
         mean_distance_cluster = torch.mean(torch.stack([torch.norm(torch.tensor(layout[node])-barycentre_cluster) for node in c])) 
         mean_distance_all = torch.mean(torch.stack([torch.norm(torch.tensor(layout[node])-barycentre_cluster) for node in graph.nodes])) 
