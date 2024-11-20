@@ -200,7 +200,7 @@ def get_shortest_paths_as_pathdata(graph, delta):
     return paths
     
 
-def closeness_centrality_paths(paths):
+def closeness_centrality_paths_slow(paths):
     ret_dict = {v: 0 for v in paths.mapping.node_ids}
     for v in paths.mapping.node_ids:
         for w in paths.mapping.node_ids:
@@ -217,6 +217,36 @@ def closeness_centrality_paths(paths):
             else:
                 ret_dict[v] += 0
     return ret_dict
+
+def closeness_centrality_paths(paths):
+    # Idea: construct two nxn-matrices, where each entry [i,j] is the numerator/denomintor 
+    # of the summand for node j for cc of node i
+    num_nodes = paths.mapping.num_ids()
+    num_paths = paths.num_paths
+
+    # initialize numerator and denumerator
+    numerator = torch.zeros(num_nodes, num_nodes, dtype=torch.float32)
+    denominator = torch.zeros(num_nodes, num_nodes, dtype=torch.float32)
+
+    # Go through all paths
+    for i in range(num_paths):
+        path = paths.get_walk(i)
+        path_indices = torch.tensor(paths.mapping.to_idxs(path))
+        # get distances between all nodes (first row is distances between node path[0] and all others and so on)
+        distances = torch.abs(torch.arange(len(path)).unsqueeze(0) - torch.arange(len(path)).unsqueeze(1))
+
+        # Update numerator and denominator
+        numerator[path_indices.unsqueeze(1), path_indices] += 1
+        denominator[path_indices.unsqueeze(1), path_indices] += distances
+
+    # calculate Closeness Centrality
+    mask = denominator != 0
+    closeness = torch.sum(torch.where(mask, numerator / denominator, torch.zeros_like(denominator)), dim=1)
+
+    closeness_dict  = {id: closeness[paths.mapping.to_idx(id)].item() for id in paths.mapping.node_ids}
+
+    return closeness_dict
+
 
 def closeness_eccentricity(data, layout, delta, percentile):
     # get closeness centrality of all nodes
