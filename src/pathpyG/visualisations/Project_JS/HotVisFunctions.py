@@ -278,7 +278,7 @@ def closeness_eccentricity(data, layout, delta, percentile):
     
     return numerator / denominator
 
-def edge_crossing(data, layout):
+def edge_crossing_slow(data, layout):
     # initialize counter
     counter = 0
     if isinstance(data, pp.TemporalGraph):
@@ -344,6 +344,75 @@ def edge_intersection(A1, A2, B1, B2):
 def is_on_segment(p, q, r):
     return (torch.min(torch.tensor([p[0], r[0]])) <= q[0] <= torch.max(torch.tensor([p[0], r[0]]))) and \
            (torch.min(torch.tensor([p[1], r[1]])) <= q[1] <= torch.max(torch.tensor([p[1], r[1]])))
+
+def edge_crossing_fastest(data, layout):
+
+    # get static graph
+    if isinstance(data, pp.TemporalGraph):
+        # get undirected (since direction doesn't matter) static graph
+        static_graph = data.to_static_graph().to_undirected()
+    elif isinstance(data, pp.PathData):
+        static_graph = pp.MultiOrderModel.from_PathData(data, 1).layers[1]
+    else:
+        return
+    # get edges
+    edges = list(static_graph.edges)
+    # every edge {'a','b'} is contained two times (as ('a','b') and as ('b','a'))
+    # remove second entry, since direction isn't important for edge crossing
+    edges = list(set(tuple(sorted(edge)) for edge in edges))
+    # create tensor containing [x_0, y_0, x_1, y_1] for each edge, where [x_0, y_0] is start and [x_1, y_1]is endpoint of the edge
+    edge_coordinates = torch.tensor([layout[key1] + layout[key2] for key1, key2 in edges], dtype=torch.float)
+
+    # for edges [x1,y1,x2,y2] and [x3,y3,x4,y4] formula for intersection is
+    # x = det1 * (x3 - x4) - (x1 - x2) * det2 / (x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4)
+    # y = det1 * (y3 - y4) - (y1 - y2) * det2 / (x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4)
+    # where
+    # det1 = x1 * y2 - y1 * x2
+    # det2 = x3 * y4 - y3 * x4
+
+    # initialize matrix containing the intersection coordinates for every two edges or the lines defined by the edges (if existant)
+    intersection_coordinates = torch.zeros((edge_coordinates.shape[0], edge_coordinates.shape[0],2))
+    # initialize matrix containing bool if two edges intersect 
+    intersections = torch.zeros((edge_coordinates.shape[0],edge_coordinates.shape[0]), dtype=torch.bool)
+
+    # determine denomitator
+    dx = edge_coordinates[:, 0] - edge_coordinates[:, 2]  # x1 - x2
+    dy = edge_coordinates[:, 1] - edge_coordinates[:, 3]  # y1 - y2
+
+    # denominator = (x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4)
+    denominator = (dx.view(-1, 1) @ dy.view(1, -1)) - (dy.view(-1, 1) @ dx.view(1, -1))
+
+    # denominator == 0 if edges are parallel and therefor the lines definied by the edges don't intersect -> build mask to ignore them
+    mask = ~torch.isclose(denominator, torch.tensor(0.0))
+
+    # determine determinant for nummerator, det= x1 * y2 - y1 * x2
+    det = edge_coordinates[:,0] * edge_coordinates[:,3] - edge_coordinates[:,1] * edge_coordinates[:,2]
+
+    # initialize intersection coordinates 
+    x = torch.zeros_like(denominator)
+    y = torch.zeros_like(denominator)
+
+    # determine intersection of lines defined by edges
+    # det_dx = (x1 * y2 - y1 * x2) * (x3 - x4)
+    det_dx = dx.view(-1, 1) @ det.view(1, -1)
+    # det_dx = (x1 * y2 - y1 * x2) * (y3 - y4)
+    det_dy = dy.view(-1, 1) @ det.view(1, -1)
+    # calculate coordinates of intersections
+    x[mask] = (det_dx.T - det_dx)[mask] / denominator[mask]
+    y[mask] = (det_dy.T - det_dy)[mask] / denominator[mask]
+    intersection_coordinates = torch.stack((x, y), dim=-1)
+
+    # check if intersections are on the linesegments (means on the edge)
+    min_edges_x = torch.minimum(edge_coordinates[:, 0], edge_coordinates[:, 2])
+    min_edges_y = torch.minimum(edge_coordinates[:, 1], edge_coordinates[:, 3])
+    max_edges_x = torch.maximum(edge_coordinates[:, 0], edge_coordinates[:, 2])
+    max_edges_y = torch.maximum(edge_coordinates[:, 1], edge_coordinates[:, 3])
+    intersections = (min_edges_x.view(-1,1) < intersection_coordinates[:, :, 0]) & (intersection_coordinates[:, :, 0] < max_edges_x.view(-1,1)) & (min_edges_y.view(-1,1) < intersection_coordinates[:, :, 1]) & (intersection_coordinates[:, :, 1] < max_edges_y.view(-1,1))
+    intersections &= (min_edges_x.view(1,-1) < intersection_coordinates[:, :, 0]) & (intersection_coordinates[:, :, 0] < max_edges_x.view(1,-1)) & (min_edges_y.view(1,-1) < intersection_coordinates[:, :, 1]) & (intersection_coordinates[:, :, 1] < max_edges_y.view(1,-1))
+    
+    counter = torch.sum(intersections[mask])/2
+
+    return counter
 
 
 def cluster_distance_ratio(graph: pp.TemporalGraph, cluster, layout):
