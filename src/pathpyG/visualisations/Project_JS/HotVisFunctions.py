@@ -177,7 +177,7 @@ def causal_path_dispersion(data, layout, delta=1):
     denominator = torch.sum(torch.norm( positions - barycentre(layout), dim=1)) * paths.num_paths
     return numerator/denominator
 
-def get_shortest_paths_as_pathdata(graph, delta):
+def get_shortest_paths_as_pathdata_slow(graph, delta):
     dist, pred = pp.algorithms.temporal_shortest_paths(graph, delta)
     paths = pp.PathData(graph.mapping)
     for node_i in range(graph.N):
@@ -196,6 +196,30 @@ def get_shortest_paths_as_pathdata(graph, delta):
                     causal_path.insert(0, graph.mapping.to_id(node_i))
                     # add path to set of paths
                     paths.append_walk(causal_path)
+
+    return paths
+
+def get_shortest_paths_as_pathdata(graph, delta):
+
+    dist, pred = pp.algorithms.temporal_shortest_paths(graph, delta)
+    dist = torch.tensor(dist)
+    pred = torch.tensor(pred)
+
+    paths = pp.PathData(graph.mapping)
+
+    causal_paths = [[None]*graph.N] * graph.N
+
+    idxs = torch.nonzero(dist == 1)
+    for idx1, idx2 in idxs:
+         causal_paths[idx1][idx2] = [graph.mapping.to_id(idx1)] + [graph.mapping.to_id(idx2)]
+         paths.append_walk(causal_paths[idx1][idx2])
+         
+    for i in range(2,graph.N+1):
+        idxs = torch.nonzero(dist == i)
+        for idx1, idx2 in idxs:
+            predecessor = pred[idx1, idx2]
+            causal_paths[idx1][idx2] = causal_paths[idx1][predecessor] + [graph.mapping.to_id(idx2)]
+            paths.append_walk(causal_paths[idx1][idx2])
 
     return paths
     
@@ -345,7 +369,7 @@ def is_on_segment(p, q, r):
     return (torch.min(torch.tensor([p[0], r[0]])) <= q[0] <= torch.max(torch.tensor([p[0], r[0]]))) and \
            (torch.min(torch.tensor([p[1], r[1]])) <= q[1] <= torch.max(torch.tensor([p[1], r[1]])))
 
-def edge_crossing_fastest(data, layout):
+def edge_crossing(data, layout):
 
     # get static graph
     if isinstance(data, pp.TemporalGraph):
