@@ -156,7 +156,7 @@ def barycentre(layout, nodes=None):
     return torch.mean(node_positions, dim=0)
 
 # causal_path_set über temporal_shortest_paths bekommen?
-def causal_path_dispersion(data, layout, delta=1):
+def causal_path_dispersion_paper(data, layout, delta=1):
     if isinstance(data, pp.TemporalGraph):
         paths = get_shortest_paths_as_pathdata(data, delta)
     elif isinstance(data, pp.PathData):
@@ -174,7 +174,30 @@ def causal_path_dispersion(data, layout, delta=1):
     numerator *= len(layout)
     # calculate denominator
     positions = torch.tensor(list(layout.values()))
-    denominator = torch.sum(torch.norm( positions - barycentre(layout), dim=1)) * paths.num_paths
+    denominator = torch.sum(torch.norm(positions - barycentre(layout), dim=1)) * paths.num_paths
+    return numerator/denominator
+
+def causal_path_dispersion(data, layout, delta=1):
+    if isinstance(data, pp.TemporalGraph):
+        paths = get_shortest_paths_as_pathdata(data, delta)
+    elif isinstance(data, pp.PathData):
+        paths = data
+    else:
+        return 0
+    
+    numerator = 0
+    multiplicator = 0
+    for i in range(paths.num_paths):
+        path = paths.get_walk(i)
+        # get positions of nodes of path
+        position_nodes = torch.tensor([layout[node] for node in path])
+        # Add the summand of the corresponding path to the counter
+        numerator += torch.sum(torch.norm(position_nodes - barycentre(layout, path), dim=1))
+        multiplicator += len(path)
+    numerator *= len(layout)
+    # calculate denominator
+    positions = torch.tensor(list(layout.values()))
+    denominator = torch.sum(torch.norm( positions - barycentre(layout), dim=1)) * multiplicator
     return numerator/denominator
 
 def get_shortest_paths_as_pathdata_slow(graph, delta):
