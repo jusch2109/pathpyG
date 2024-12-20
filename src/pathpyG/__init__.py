@@ -10,12 +10,14 @@ and University of Zurich. The research behind pathpyG has been funded by the
 Swiss National Science Foundation via 
 [grant 176938](https://data.snf.ch/grants/grant/176938).
 """
+
 import torch
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 
 from pathpyG.utils.config import config
 from pathpyG.utils.progress import tqdm
+from pathpyG.utils.logger import logger
 
 from pathpyG.core.graph import Graph
 from pathpyG.core.index_map import IndexMap

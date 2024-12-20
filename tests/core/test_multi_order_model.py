@@ -30,7 +30,7 @@ def test_multi_order_model_str():
 def test_iterate_lift_order(simple_graph_multi_edges):
     ho_index, node_sequence, edge_weight, gk = MultiOrderModel.iterate_lift_order(
         edge_index=simple_graph_multi_edges.data.edge_index,
-        node_sequence=torch.arange(simple_graph_multi_edges.N).unsqueeze(1),
+        node_sequence=torch.arange(simple_graph_multi_edges.n).unsqueeze(1),
         mapping=simple_graph_multi_edges.mapping,
         save=True,
     )
@@ -40,6 +40,7 @@ def test_iterate_lift_order(simple_graph_multi_edges):
     assert gk.data.edge_index.as_tensor().tolist() == [[0], [2]]
     assert gk.data.node_sequence.tolist() == [[0, 1], [0, 2], [1, 2]]
     assert gk.data.edge_weight.tolist() == [2.0]
+    assert gk.order == 2
 
 
 def test_dof():
@@ -188,3 +189,33 @@ def test_to_DBGNN_data(simple_temporal_graph):
     data = m.to_dbgnn_data(max_order=3)
     assert torch.equal(data.edge_index, EdgeIndex([[0, 1, 2, 2], [1, 2, 3, 4]]))
     assert torch.equal(data.edge_index_higher_order, EdgeIndex([[0, 0], [1, 2]]))
+
+def test_paths_indexing():
+    """
+    This test was create to test that start indexes (ixs_start_paths_ho) of paths in get_intermediate_order_log_likelihood work correcly.
+    Paths 'shrink' when encoded throgh higher-order nodes, and ixs_start_paths_ho has to correctly account for it.
+    """
+    paths_list = [
+        ("d","b","c"),
+        ("a","b","c"),
+        ("a","b","e"),
+        ("d","b","e"),
+        ("a",)
+        ]
+    frequencies = [
+        1,
+        20,
+        1,
+        20,
+        1
+        ]
+    mapping = IndexMap()
+    mapping.add_ids(np.unique(np.hstack(paths_list)))
+    pathdata = PathData(mapping)
+    pathdata.append_walks(node_seqs=paths_list, weights=frequencies)
+    max_order = 3
+    mon = MultiOrderModel.from_PathData(pathdata, max_order=max_order)
+    mon.estimate_order(
+        pathdata,
+        max_order=max_order
+        )
