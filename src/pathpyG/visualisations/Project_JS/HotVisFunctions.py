@@ -1,3 +1,9 @@
+import torch
+import torch_geometric
+import pathpyG as pp
+from typing import Iterable, Union, Any, Optional
+
+
 def HotVis(data: pp.TemporalGraph|pp.PathData, orders: int, iterations: int, delta: int, 
            alpha: torch.Tensor | None = None, initial_positions: torch.Tensor | None = None, force: int = 1) -> torch.Tensor:
     
@@ -547,13 +553,16 @@ def edge_crossing(data, layout):
         max_current_x = torch.maximum(current_edge_coordinates[0], current_edge_coordinates[2])
         max_current_y = torch.maximum(current_edge_coordinates[1], current_edge_coordinates[3])
 
+        # check whether the intersections are on edge segment
         valid_intersections = within_bounds(min_edges_x, max_edges_x, min_edges_y, max_edges_y, intersection_coordinates) & \
                             within_bounds(min_current_x, max_current_x, min_current_y, max_current_y, intersection_coordinates)
-
+        # check whether the intersections are on edge and not on nodes 
         valid_intersections &= is_not_endpoint(edge_coordinates.T, intersection_coordinates) & is_not_endpoint(current_edge_coordinates, intersection_coordinates)
 
+        # increase counter by number of valid intersections
         counter += torch.sum(valid_intersections[mask])
 
+    # every intersection was countzed twice
     return counter/2
 
 
@@ -566,3 +575,33 @@ def cluster_distance_ratio(graph: pp.TemporalGraph, cluster, layout):
         distance_clusters[idx] = mean_distance_cluster / mean_distance_all
     
     return distance_clusters
+
+def random_walk_temporal_graph(graph: pp.TemporalGraph, delta: int = 1, steps: list = [10], runs: list = [1]):
+    # create higher order model of order 2
+    g_ho = pp.MultiOrderModel.from_temporal_graph(graph, delta = delta, max_order=2, cached=False).layers[2]
+    # get instance of RandomWalk
+    rw = pp.processes.RandomWalk(g_ho, weight='edge_weight', restart_prob=0.0)
+    # get instance of PathData
+    paths = pp.PathData(graph.mapping)
+    # for every step number and corresponding run number
+    for s,r in zip(steps, runs):
+        # create r paths on higher order model with s-1 steps
+        current_steps_paths = rw.get_paths(rw.run_experiment(steps=s-1, runs=r))
+        # for every path
+        for idx in range(current_steps_paths.num_paths):
+            # get path
+            current_path_ho = current_steps_paths.get_walk(idx)
+            # start curret path with nodes of first node in higher order model
+            current_path = [current_path_ho[0][0], current_path_ho[0][1]]
+            # iterate through higher order path as long as it is a real path (sometimes we jump anywhere in case there is no other possibility)
+            i = 1
+            while i < len(current_path_ho) and (current_path_ho[i][0] == current_path[-1]):
+                    # check if we stayed on the same node -> skip
+                    if not current_path_ho[i][0] == current_path_ho[i][1]:
+                        # append node
+                        current_path.append(current_path_ho[i][1])
+                    i += 1
+            # created append path to PathData object
+            paths.append_walk(current_path)
+            
+    return paths
