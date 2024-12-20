@@ -1,7 +1,3 @@
-import torch
-import torch_geometric
-import pathpyG as pp
-
 def HotVis(data: pp.TemporalGraph|pp.PathData, orders: int, iterations: int, delta: int, 
            alpha: torch.Tensor | None = None, initial_positions: torch.Tensor | None = None, force: int = 1) -> torch.Tensor:
     
@@ -70,7 +66,7 @@ def HotVis(data: pp.TemporalGraph|pp.PathData, orders: int, iterations: int, del
     for node in mo_model.layers[1].nodes:
         layout[node] = positions[mo_model.layers[1].mapping.to_idx(node)].tolist()
 
-    return layout
+    return layout, mo_model.layers[1], positions, A
 
 def HotVisSlow(data: pp.TemporalGraph | pp.PathData, orders: int, iterations: int, delta: int, 
            alpha: torch.Tensor | None = None, initial_positions: torch.Tensor | None = None, force: int = 1) -> torch.Tensor:
@@ -145,7 +141,7 @@ def HotVisSlow(data: pp.TemporalGraph | pp.PathData, orders: int, iterations: in
     for node in mo_model.layers[1].nodes:
         layout[node] = positions[mo_model.layers[1].mapping.to_idx(node)].tolist()
 
-    return layout
+    return layout, mo_model.layers[1], positions, A 
 
 
 def barycentre(layout, nodes=None):
@@ -155,7 +151,6 @@ def barycentre(layout, nodes=None):
         node_positions = torch.tensor([layout[node] for node in nodes]).to(torch.float64)
     return torch.mean(node_positions, dim=0)
 
-# causal_path_set über temporal_shortest_paths bekommen?
 def causal_path_dispersion_paper(data, layout, delta=1):
     if isinstance(data, pp.TemporalGraph):
         paths = get_shortest_paths_as_pathdata(data, delta)
@@ -174,7 +169,7 @@ def causal_path_dispersion_paper(data, layout, delta=1):
     numerator *= len(layout)
     # calculate denominator
     positions = torch.tensor(list(layout.values()))
-    denominator = torch.sum(torch.norm(positions - barycentre(layout), dim=1)) * paths.num_paths
+    denominator = torch.sum(torch.norm( positions - barycentre(layout), dim=1)) * paths.num_paths
     return numerator/denominator
 
 def causal_path_dispersion(data, layout, delta=1):
@@ -392,7 +387,7 @@ def is_on_segment(p, q, r):
     return (torch.min(torch.tensor([p[0], r[0]])) <= q[0] <= torch.max(torch.tensor([p[0], r[0]]))) and \
            (torch.min(torch.tensor([p[1], r[1]])) <= q[1] <= torch.max(torch.tensor([p[1], r[1]])))
 
-def edge_crossing(data, layout):
+def edge_crossing_not_working(data, layout):
 
     # get static graph
     if isinstance(data, pp.TemporalGraph):
@@ -462,9 +457,109 @@ def edge_crossing(data, layout):
     return counter
 
 
+# intersection point has to be in bounds of edge
+def within_bounds(min_x, max_x, min_y, max_y, intersection_coordinates):
+    return (
+        (min_x <= intersection_coordinates[:, 0]) & (intersection_coordinates[:, 0] <= max_x) &
+        (min_y <= intersection_coordinates[:, 1]) & (intersection_coordinates[:, 1] <= max_y)
+    )
+
+
+# intersection point must not be endpoint of edge
+def is_not_endpoint(coordinates, intersection_coordinates):
+    return ~(
+        ((intersection_coordinates[:, 0] == coordinates[0]) & (intersection_coordinates[:, 1] == coordinates[1])) |
+        ((intersection_coordinates[:, 0] == coordinates[2]) & (intersection_coordinates[:, 1] == coordinates[3]))
+    )
+
+
+def edge_crossing(data, layout):
+
+    # get static graph
+    if isinstance(data, pp.TemporalGraph):
+        # get undirected (since direction doesn't matter) static graph
+        static_graph = data.to_static_graph().to_undirected()
+    elif isinstance(data, pp.PathData):
+        static_graph = pp.MultiOrderModel.from_PathData(data, 1).layers[1]
+    else:
+        return
+    # get edges
+    edges = list(static_graph.edges)
+    # every edge {'a','b'} is contained two times (as ('a','b') and as ('b','a'))
+    # remove second entry, since direction isn't important for edge crossing
+    edges = list(set(tuple(sorted(edge)) for edge in edges))
+    # create tensor containing [x_0, y_0, x_1, y_1] for each edge, where [x_0, y_0] is start and [x_1, y_1]is endpoint of the edge
+    edge_coordinates = torch.tensor([layout[key1] + layout[key2] for key1, key2 in edges], dtype=torch.float)
+
+    counter = 0
+
+    # for edges [x1,y1,x2,y2] and [x3,y3,x4,y4] formula for intersection is
+    # x = det1 * (x3 - x4) - (x1 - x2) * det2 / (x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4)
+    # y = det1 * (y3 - y4) - (y1 - y2) * det2 / (x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4)
+    # where
+    # det1 = x1 * y2 - y1 * x2
+    # det2 = x3 * y4 - y3 * x4
+
+    for edge in edges:
+        # initialize matrix containing the intersection coordinates for every edges and the current edge or the lines defined by the edges (if existant)
+        intersection_coordinates = torch.zeros((edge_coordinates.shape[0],2))
+        # initialize matrix containing bool if edges intersect 
+        intersections = torch.zeros((edge_coordinates.shape[0]), dtype=torch.bool)
+
+        current_edge_coordinates = torch.tensor(layout[edge[0]] + layout[edge[1]], dtype=torch.float)
+        current_edge_dx = current_edge_coordinates[0] - current_edge_coordinates[2] # x1 - x2
+        current_edge_dy = current_edge_coordinates[1] - current_edge_coordinates[3] # y1 - y2
+
+        # determine denomitator
+        dx = edge_coordinates[:, 0] - edge_coordinates[:, 2]  # x1 - x2
+        dy = edge_coordinates[:, 1] - edge_coordinates[:, 3]  # y1 - y2
+
+        # denominator = (x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4)
+        denominator = (current_edge_dx * dy) - (current_edge_dy * dx)
+
+        # denominator == 0 if edges are parallel and therefor the lines definied by the edges don't intersect -> build mask to ignore them
+        mask = ~torch.isclose(denominator, torch.tensor(0.0))
+
+        # determine determinant for nummerator, det= x1 * y2 - y1 * x2
+        det1 = current_edge_coordinates[0] * current_edge_coordinates[3] - current_edge_coordinates[1] * current_edge_coordinates[2]
+        det2 = edge_coordinates[:,0] * edge_coordinates[:,3] - edge_coordinates[:,1] * edge_coordinates[:,2]
+
+        # initialize intersection coordinates 
+        x = torch.zeros_like(denominator)
+        y = torch.zeros_like(denominator)
+
+        # determine intersection of lines defined by edges
+        #det1 * (x3 - x4) - (x1 - x2) * det2
+        nominator_x = det1 * dx - current_edge_dx * det2
+        nominator_y = det1 * dy - current_edge_dy * det2
+        # calculate coordinates of intersections
+        x[mask] = nominator_x[mask] / denominator[mask]
+        y[mask] = nominator_y[mask] / denominator[mask]
+        intersection_coordinates = torch.stack((x, y), dim=-1)
+
+        min_edges_x = torch.minimum(edge_coordinates[:, 0], edge_coordinates[:, 2])
+        min_edges_y = torch.minimum(edge_coordinates[:, 1], edge_coordinates[:, 3])
+        max_edges_x = torch.maximum(edge_coordinates[:, 0], edge_coordinates[:, 2])
+        max_edges_y = torch.maximum(edge_coordinates[:, 1], edge_coordinates[:, 3])
+
+        min_current_x = torch.minimum(current_edge_coordinates[0], current_edge_coordinates[2])
+        min_current_y = torch.minimum(current_edge_coordinates[1], current_edge_coordinates[3])
+        max_current_x = torch.maximum(current_edge_coordinates[0], current_edge_coordinates[2])
+        max_current_y = torch.maximum(current_edge_coordinates[1], current_edge_coordinates[3])
+
+        valid_intersections = within_bounds(min_edges_x, max_edges_x, min_edges_y, max_edges_y, intersection_coordinates) & \
+                            within_bounds(min_current_x, max_current_x, min_current_y, max_current_y, intersection_coordinates)
+
+        valid_intersections &= is_not_endpoint(edge_coordinates.T, intersection_coordinates) & is_not_endpoint(current_edge_coordinates, intersection_coordinates)
+
+        counter += torch.sum(valid_intersections[mask])
+
+    return counter/2
+
+
 def cluster_distance_ratio(graph: pp.TemporalGraph, cluster, layout):
     distance_clusters = torch.zeros(len(cluster))
-    for idx, c in enumerate(cluster):
+    for idx,c in enumerate(cluster):
         barycentre_cluster = barycentre(layout, c)
         mean_distance_cluster = torch.mean(torch.stack([torch.norm(torch.tensor(layout[node])-barycentre_cluster) for node in c])) 
         mean_distance_all = torch.mean(torch.stack([torch.norm(torch.tensor(layout[node])-barycentre_cluster) for node in graph.nodes])) 
