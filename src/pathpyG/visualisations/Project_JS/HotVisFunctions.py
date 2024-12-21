@@ -7,6 +7,34 @@ from typing import Iterable, Union, Any, Optional
 def HotVis(data: pp.TemporalGraph|pp.PathData, orders: int, iterations: int, delta: int, 
            alpha: torch.Tensor | None = None, initial_positions: torch.Tensor | None = None, force: int = 1) -> dict:
     
+
+    """
+    Generates a layout for visualizing a temporal graph or path data using a force-directed model. (following 
+    Perri, V., & Scholtes, I. (2020). HOTVis: Higher-Order Time-Aware Visualisation of Dynamic Graphs. arXiv. https://arxiv.org/abs/1908.05976)
+
+    Args:
+        data (pp.TemporalGraph | pp.PathData): The input, either a temporal graph or path data, for which the layout is to be created.
+        orders (int): The number of higher orders to consider for constructing the model and calculating the layout.
+        iterations (int): The number of iterations for the force-directed optimization process.
+        delta (int): A parameter defining the time window for paths in the temporal graph (not considered for PathData objects).
+        alpha (torch.Tensor, optional): A tensor of weights for each order. Defaults to a tensor of ones.
+        initial_positions (torch.Tensor, optional): Initial positions of nodes in the layout. If not provided, 
+            random positions are generated.
+        force (int): A parameter controlling the repulsive and attractive forces in the layout. Default is 1.
+
+    Returns:
+        dict: A dictionary mapping nodes to their 2D positions in the layout.
+            Keys are node identifiers, and values are lists representing [x, y] coordinates.
+
+    Raises:
+        ValueError: If the input data is not of type `pp.TemporalGraph` or `pp.PathData`.
+
+    Example:
+        >>> layout = HotVis(data=temporal_graph, orders=3, iterations=200, delta=1)
+        >>> print(layout)
+        {'node1': [x1, y1], 'node2': [x2, y2], ...}
+    """
+
     if isinstance(data, pp.TemporalGraph):
         mo_model = pp.MultiOrderModel.from_temporal_graph(data, delta=delta, max_order=orders)
     elif isinstance(data, pp.PathData):
@@ -74,7 +102,30 @@ def HotVis(data: pp.TemporalGraph|pp.PathData, orders: int, iterations: int, del
     return layout
 
 
-def barycentre(layout, nodes=None):
+def barycentre(layout: dict, nodes: list|None =None):
+    
+    """
+    Computes the barycentre (geometric center) of a set of nodes in a given layout.
+
+    Args:
+        layout (dict): A dictionary mapping nodes to their 2D positions. 
+            Keys are node identifiers, and values are lists or tensors representing [x, y] coordinates.
+        nodes (list, optional): A list of specific nodes for which the barycentre should be calculated. 
+            If None, the barycentre is computed for all nodes in the layout.
+
+    Returns:
+        torch.Tensor: A tensor representing the [x, y] coordinates of the barycentre.
+
+    Example:
+        >>> layout = {'node1': [0, 0], 'node2': [2, 2], 'node3': [4, 4]}
+        >>> center = barycentre(layout)
+        >>> print(center)
+        tensor([2., 2.])
+
+        >>> center_subset = barycentre(layout, nodes=['node1', 'node3'])
+        >>> print(center_subset)
+        tensor([2., 2.])
+    """
     if nodes is None:
         node_positions = torch.tensor(list(layout.values())).to(torch.float64)
     else:
@@ -82,17 +133,39 @@ def barycentre(layout, nodes=None):
     return torch.mean(node_positions, dim=0)
 
 
-def causal_path_dispersion(data, layout, delta=1, steps: list = [], runs: list = []):
+def causal_path_dispersion(data: pp.TemporalGraph|pp.PathData, layout: dict, delta: int =1, steps: list = [], runs: list = []):
+
+    """
+    Computes the causal path dispersion, a measure of the spatial variability of paths in a graph layout.
+
+    Args:
+        data (pp.TemporalGraph | pp.PathData): The input data, either a temporal graph or path data.
+        layout (dict): A dictionary mapping nodes to their 2D positions. 
+            Keys are node identifiers, and values are lists or tensors representing [x, y] coordinates.
+        delta (int): The time window parameter for paths in temporal graphs. Default is 1.
+        steps (list, optional): A list of path lengths for random walks on the temporal graph. Not conidered for PathData objects.
+            Defaults to `[max(3, int(data.n/3))]` if not provided.
+        runs (list, optional): A list of the number of random walk runs to perform. Not conidered for PathData objects.
+            Defaults to `[int(data.n/2)]` if not provided.
+
+    Returns:
+        float: The causal path dispersion value, a ratio of spatial variability of paths to overall variability in the layout.
+
+    Example:
+        >>> dispersion = causal_path_dispersion(data=temporal_graph, layout=layout, delta=2)
+        >>> print(dispersion)
+        0.85
+    """
+
     if isinstance(data, pp.TemporalGraph):
         if len(steps) == 0:
             steps = [max(3, int(data.n/3))]
-        if len(runs)==0:
+        if len(runs) == 0:
             runs = [int(data.n/2)]
         paths = random_walk_temporal_graph(data, delta=delta, steps=steps, runs=runs)
     elif isinstance(data, pp.PathData):
         paths = data
-    else:
-        return 0
+
     
     numerator = 0
     multiplicator = 0
@@ -110,7 +183,22 @@ def causal_path_dispersion(data, layout, delta=1, steps: list = [], runs: list =
     return numerator/denominator
 
 
-def closeness_centrality_paths(paths):
+def closeness_centrality_paths(paths: pp.PathData):
+    """
+    Computes the closeness centrality for nodes based on paths in the provided path data.
+
+    Args:
+        paths (PathData): The PathData object the closeness centralities should be based on.
+
+    Returns:
+        dict: A dictionary mapping nodes to their closeness centrality values.
+
+    Example:
+        >>> closeness = closeness_centrality_paths(paths)
+        >>> print(closeness)
+        {'node1': 0.75, 'node2': 0.65, ...}
+    """
+
     # Idea: construct two nxn-matrices, where each entry [i,j] is the numerator/denomintor 
     # of the summand for node j for cc of node i
     num_nodes = paths.mapping.num_ids()
@@ -135,12 +223,38 @@ def closeness_centrality_paths(paths):
     mask = denominator != 0
     closeness = torch.sum(torch.where(mask, numerator / denominator, torch.zeros_like(denominator)), dim=1)
 
-    closeness_dict  = {id: closeness[paths.mapping.to_idx(id)].item() for id in paths.mapping.node_ids}
+    closeness_dict = {id: closeness[paths.mapping.to_idx(id)].item() for id in paths.mapping.node_ids}
 
     return closeness_dict
 
 
-def closeness_eccentricity(data, layout, delta, percentile, steps: list = [], runs: list = []):
+def closeness_eccentricity(data: pp.TemporalGraph|pp.PathData, layout: dict, delta: int =1, percentile: float = 0.1, steps: list = [], runs: list = []):
+
+    """
+    Computes the closeness eccentricity, a measure of how central nodes with high closeness centrality 
+    are positioned relative to the overall layout.
+
+    Args:
+        data (pp.TemporalGraph | pp.PathData): The input data, either a temporal graph or path data.
+        layout (dict): A dictionary mapping nodes to their 2D positions.
+        delta (int): The time window parameter for paths in temporal graphs. Not considered if data is a PathData object. Default is 1.
+        percentile (float): The upper percentile of nodes based on closeness centrality to include in the calculation. Default is 0.1.
+        steps (list, optional): A list of step lengths for random walks on the temporal graph. Not considered if data is a PathData object. 
+            Defaults to `[max(3, int(data.n/3))]` if not provided.
+        runs (list, optional): A list of the number of random walk runs to perform. Not considered if data is a PathData object.
+            Defaults to `[int(data.n/2)]` if not provided.
+
+    Returns:
+        float: The closeness eccentricity value, a ratio comparing the centrality of high-centrality nodes 
+        to the centrality of all nodes in the layout.
+
+
+    Example:
+        >>> eccentricity = closeness_eccentricity(data=temporal_graph, layout=layout, percentile=0.1)
+        >>> print(eccentricity)
+        0.85
+    """
+
     # get closeness centrality of all nodes
     if isinstance(data, pp.TemporalGraph):
         if len(steps) == 0:
@@ -173,8 +287,21 @@ def closeness_eccentricity(data, layout, delta, percentile, steps: list = [], ru
     
     return numerator / denominator
 
-# intersection point has to be in bounds of edge
+
 def within_bounds(min_x, max_x, min_y, max_y, intersection_coordinates):
+    """
+    Checks if the intersection points are within the bounds of the edges.
+
+    Args:
+        min_x (torch.Tensor): Minimum x-coordinates of the intersecting edges.
+        max_x (torch.Tensor): Maximum x-coordinates of the intersecting edges.
+        min_y (torch.Tensor): Minimum y-coordinates of the intersecting edges.
+        max_y (torch.Tensor): Maximum y-coordinates of the intersecting edges.
+        intersection_coordinates (torch.Tensor): Tensor of intersection points as [x, y].
+
+    Returns:
+        torch.Tensor: Boolean tensor indicating whether each intersection point is within bounds.
+    """
     return (
         (min_x <= intersection_coordinates[:, 0]) & (intersection_coordinates[:, 0] <= max_x) &
         (min_y <= intersection_coordinates[:, 1]) & (intersection_coordinates[:, 1] <= max_y)
@@ -183,13 +310,40 @@ def within_bounds(min_x, max_x, min_y, max_y, intersection_coordinates):
 
 # intersection point must not be endpoint of edge
 def is_not_endpoint(coordinates, intersection_coordinates):
+    """
+    Verifies that intersection points are not endpoints of edges.
+
+    Args:
+        coordinates (torch.Tensor): Tensor of edge endpoints in the format [x1, y1, x2, y2].
+        intersection_coordinates (torch.Tensor): Tensor of intersection points as [x, y].
+
+    Returns:
+        torch.Tensor: Boolean tensor indicating whether each intersection point is not an endpoint.
+    """
+
     return ~(
         ((intersection_coordinates[:, 0] == coordinates[0]) & (intersection_coordinates[:, 1] == coordinates[1])) |
         ((intersection_coordinates[:, 0] == coordinates[2]) & (intersection_coordinates[:, 1] == coordinates[3]))
     )
 
 
-def edge_crossing(data, layout):
+def edge_crossing(data: pp.TemporalGraph | pp.PathData, layout: dict):
+
+    """
+    Counts the number of edge crossings in a graph layout.
+
+    Args:
+        data (pp.TemporalGraph | pp.PathData): Input graph, either a temporal graph or path data.
+        layout (dict): A dictionary mapping nodes to their 2D positions.
+
+    Returns:
+        int: The total number of edge crossings in the layout.
+
+    Example:
+        >>> crossings = edge_crossing(temporal_graph, layout)
+        >>> print(crossings)
+        15
+    """
 
     # get static graph
     if isinstance(data, pp.TemporalGraph):
@@ -276,7 +430,25 @@ def edge_crossing(data, layout):
     return counter/2
 
 
-def cluster_distance_ratio(graph: pp.TemporalGraph, cluster, layout):
+def cluster_distance_ratio(graph: pp.TemporalGraph, cluster: list, layout: dict):
+    """
+    Computes the cluster distance ratio, a measure of how tightly nodes within a cluster 
+    are positioned relative to their barycenter compared to all nodes in the graph.
+
+    Args:
+        graph (pp.TemporalGraph): The input temporal graph containing nodes and edges.
+        cluster (list): A list of clusters, where each cluster is a list of node IDs.
+        layout (dict): A dictionary mapping nodes to their 2D positions.
+
+    Returns:
+        torch.Tensor: A tensor containing the distance ratio for each cluster.
+
+    Example:
+        >>> cluster_distances = cluster_distance_ratio(graph, clusters, layout)
+        >>> print(cluster_distances)
+        tensor([0.85, 0.92, 1.10])
+    """
+
     distance_clusters = torch.zeros(len(cluster))
     for idx,c in enumerate(cluster):
         barycentre_cluster = barycentre(layout, c)
@@ -287,6 +459,22 @@ def cluster_distance_ratio(graph: pp.TemporalGraph, cluster, layout):
     return distance_clusters
 
 def random_walk_temporal_graph(graph: pp.TemporalGraph, delta: int = 1, steps: list = [10], runs: list = [1]):
+    """
+    Performs random walks on a temporal graph using a higher-order model and returns the generated paths.
+
+    Args:
+        graph (pp.TemporalGraph): The input temporal graph on which the random walks are performed.
+        delta (int, optional): The time window parameter used for the higher-order model. Default is 1.
+        steps (list, optional): A list of step lengths for each random walk. Default is `[10]`.
+        runs (list, optional): A list of the number of random walk runs to perform for each step length. Default is `[1]`.
+
+    Returns:
+        pp.PathData: A `PathData` object containing the paths generated by the random walks.
+
+    Example:
+        >>> paths = random_walk_temporal_graph(temporal_graph, delta=2, steps=[5, 10], runs=[2, 3])
+    """
+
     # create higher order model of order 2
     g_ho = pp.MultiOrderModel.from_temporal_graph(graph, delta = delta, max_order=2, cached=False).layers[2]
     # get instance of RandomWalk
@@ -325,6 +513,7 @@ def random_walk_temporal_graph(graph: pp.TemporalGraph, delta: int = 1, steps: l
 
 #################################################################################################################################
 
+# slow but easier to understand
 def HotVisSlow(data: pp.TemporalGraph | pp.PathData, orders: int, iterations: int, delta: int, 
            alpha: torch.Tensor | None = None, initial_positions: torch.Tensor | None = None, force: int = 1) -> dict:
     
@@ -400,7 +589,7 @@ def HotVisSlow(data: pp.TemporalGraph | pp.PathData, orders: int, iterations: in
 
     return layout
     
-
+# version from paper. There is porobabily a mistake in it.
 def causal_path_dispersion_paper(data, layout, delta=1, steps: list = [], runs: list = []):
     if isinstance(data, pp.TemporalGraph):
         if len(steps) == 0:
@@ -426,6 +615,7 @@ def causal_path_dispersion_paper(data, layout, delta=1, steps: list = [], runs: 
     denominator = torch.sum(torch.norm( positions - barycentre(layout), dim=1)) * paths.num_paths
     return numerator/denominator
 
+# doesn't work, because there isn't  necesseray a path from a predecessor of the predecessor of a node to the node.
 def get_shortest_paths_as_pathdata_slow(graph, delta):
     dist, pred = pp.algorithms.temporal_shortest_paths(graph, delta)
     paths = pp.PathData(graph.mapping)
@@ -448,6 +638,7 @@ def get_shortest_paths_as_pathdata_slow(graph, delta):
 
     return paths
 
+# doesn't work, because there isn't  necesseray a path from a predecessor of the predecessor of a node to the node.
 def get_shortest_paths_as_pathdata(graph, delta):
 
     dist, pred = pp.algorithms.temporal_shortest_paths(graph, delta)
@@ -472,6 +663,7 @@ def get_shortest_paths_as_pathdata(graph, delta):
 
     return paths
 
+# slow version of closeness centrality
 def closeness_centrality_paths_slow(paths):
     ret_dict = {v: 0 for v in paths.mapping.node_ids}
     for v in paths.mapping.node_ids:
@@ -490,6 +682,7 @@ def closeness_centrality_paths_slow(paths):
                 ret_dict[v] += 0
     return ret_dict
 
+# slow version of edge crossing
 def edge_crossing_slow(data, layout):
     # initialize counter
     counter = 0
@@ -557,6 +750,8 @@ def is_on_segment(p, q, r):
     return (torch.min(torch.tensor([p[0], r[0]])) <= q[0] <= torch.max(torch.tensor([p[0], r[0]]))) and \
            (torch.min(torch.tensor([p[1], r[1]])) <= q[1] <= torch.max(torch.tensor([p[1], r[1]])))
 
+# fast but memory expensive version of edge crossing. The results are not correct, since the intersection check at the end ins't correct.
+# Didn't fixed it, since it is to expensive on memory anyways.
 def edge_crossing_fast(data, layout):
 
     # get static graph
