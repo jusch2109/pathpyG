@@ -18,8 +18,8 @@ def HotVis(data: pp.TemporalGraph|pp.PathData, orders: int, iterations: int, del
     if alpha is None:
         alpha = torch.ones(orders)
     if initial_positions is None:
-        initial_positions = torch.rand((mo_model.layers[1].N, 2))*100
-    A = torch.zeros((mo_model.layers[1].N, mo_model.layers[1].N))
+        initial_positions = torch.rand((mo_model.layers[1].n, 2))*100
+    A = torch.zeros((mo_model.layers[1].n, mo_model.layers[1].n))
 
     # iterate over higher orders
     for i in range(orders):
@@ -91,8 +91,8 @@ def HotVisSlow(data: pp.TemporalGraph | pp.PathData, orders: int, iterations: in
     if alpha is None:
         alpha = torch.ones(orders)
     if initial_positions is None:
-        initial_positions = torch.rand((mo_model.layers[1].N, 2))*100
-    A = torch.zeros((mo_model.layers[1].N, mo_model.layers[1].N))
+        initial_positions = torch.rand((mo_model.layers[1].n, 2))*100
+    A = torch.zeros((mo_model.layers[1].n, mo_model.layers[1].n))
 
     for i in range(orders):
         ho_graph = mo_model.layers[i+1]
@@ -118,7 +118,7 @@ def HotVisSlow(data: pp.TemporalGraph | pp.PathData, orders: int, iterations: in
     positions = initial_positions
 
     # every nodes "movement" or displacement gets describet by an tuple (x, y) 
-    displacement = torch.zeros((mo_model.layers[1].N, 2))
+    displacement = torch.zeros((mo_model.layers[1].n, 2))
     for _ in range(iterations):
         # reset displacement
         displacement *= 0
@@ -157,9 +157,13 @@ def barycentre(layout, nodes=None):
         node_positions = torch.tensor([layout[node] for node in nodes]).to(torch.float64)
     return torch.mean(node_positions, dim=0)
 
-def causal_path_dispersion_paper(data, layout, delta=1):
+def causal_path_dispersion_paper(data, layout, delta=1, steps: list = [], runs: list = []):
     if isinstance(data, pp.TemporalGraph):
-        paths = get_shortest_paths_as_pathdata(data, delta)
+        if len(steps) == 0:
+            steps = [max(3, int(data.n/3))]
+        if len(runs)==0:
+            runs = [int(data.n/2)]
+        paths = random_walk_temporal_graph(data, delta=delta, steps=steps, runs=runs)
     elif isinstance(data, pp.PathData):
         paths = data
     else:
@@ -178,9 +182,13 @@ def causal_path_dispersion_paper(data, layout, delta=1):
     denominator = torch.sum(torch.norm( positions - barycentre(layout), dim=1)) * paths.num_paths
     return numerator/denominator
 
-def causal_path_dispersion(data, layout, delta=1):
+def causal_path_dispersion(data, layout, delta=1, steps: list = [], runs: list = []):
     if isinstance(data, pp.TemporalGraph):
-        paths = get_shortest_paths_as_pathdata(data, delta)
+        if len(steps) == 0:
+            steps = [max(3, int(data.n/3))]
+        if len(runs)==0:
+            runs = [int(data.n/2)]
+        paths = random_walk_temporal_graph(data, delta=delta, steps=steps, runs=runs)
     elif isinstance(data, pp.PathData):
         paths = data
     else:
@@ -204,8 +212,8 @@ def causal_path_dispersion(data, layout, delta=1):
 def get_shortest_paths_as_pathdata_slow(graph, delta):
     dist, pred = pp.algorithms.temporal_shortest_paths(graph, delta)
     paths = pp.PathData(graph.mapping)
-    for node_i in range(graph.N):
-           for node_j in range(graph.N):
+    for node_i in range(graph.n):
+           for node_j in range(graph.n):
                 if dist[node_i, node_j] > 0 and pred[node_i, node_j] != -1:
                     # initialize path
                     causal_path = [graph.mapping.to_id(node_j)]
@@ -231,14 +239,14 @@ def get_shortest_paths_as_pathdata(graph, delta):
 
     paths = pp.PathData(graph.mapping)
 
-    causal_paths = [[None]*graph.N] * graph.N
+    causal_paths = [[None]*graph.n] * graph.n
 
     idxs = torch.nonzero(dist == 1)
     for idx1, idx2 in idxs:
          causal_paths[idx1][idx2] = [graph.mapping.to_id(idx1)] + [graph.mapping.to_id(idx2)]
          paths.append_walk(causal_paths[idx1][idx2])
          
-    for i in range(2,graph.N+1):
+    for i in range(2,graph.n+1):
         idxs = torch.nonzero(dist == i)
         for idx1, idx2 in idxs:
             predecessor = pred[idx1, idx2]
@@ -296,11 +304,14 @@ def closeness_centrality_paths(paths):
     return closeness_dict
 
 
-def closeness_eccentricity(data, layout, delta, percentile):
+def closeness_eccentricity(data, layout, delta, percentile, steps: list = [], runs: list = []):
     # get closeness centrality of all nodes
     if isinstance(data, pp.TemporalGraph):
-        #closeness_centrality = pp.algorithms.centrality.temporal_closeness_centrality(data, delta)
-        paths = get_shortest_paths_as_pathdata(data, delta)
+        if len(steps) == 0:
+            steps = [max(3, int(data.n/3))]
+        if len(runs) == 0:
+            runs = [int(data.n/2)]
+        paths = random_walk_temporal_graph(data, delta=delta, steps=steps, runs=runs)
         closeness_centrality = closeness_centrality_paths(paths)
     elif isinstance(data, pp.PathData):
         closeness_centrality = closeness_centrality_paths(data)
