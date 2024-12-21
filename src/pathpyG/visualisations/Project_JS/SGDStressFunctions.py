@@ -1,4 +1,4 @@
-from HotVisFunctions import *
+from pathpyG.visualisations.Project_JS.HotVisFunctions import *
 
 def shortest_paths_path_data(path_data: pp.PathData):
     """
@@ -242,7 +242,6 @@ def Adam_stress_torch(data: pp.TemporalGraph|pp.PathData, iterations: int, delta
 
 def SGD_stress_paper(data: pp.TemporalGraph|pp.PathData, iterations: int, delta:int = 1, initial_positions: torch.Tensor | None = None, learning_rate: float = 0.01, eta: float = 1, decay: float = 0.5) -> dict:
     
-    def SGD_stress_paper(data: pp.TemporalGraph|pp.PathData, iterations: int, delta:int = 1, initial_positions: torch.Tensor | None = None, learning_rate: float = 0.01, eta: float = 1, decay: float = 0.5) -> dict:
     """
     Performs stress minimization using Stochastic Gradient Descent (SGD) to optimize the layout of nodes in a graph or path data.
 
