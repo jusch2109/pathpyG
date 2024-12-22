@@ -1,0 +1,48 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: &jobname evaluate-job
+spec:
+  template:
+    spec:
+      containers:
+        - name: *jobname # gets read as "test-job" as it links to the variable definition above
+          image: ls6-stud-registry.informatik.uni-wuerzburg.de/julius.schneller/evaluation_mlnets
+          imagePullPolicy: "Always"
+          env:
+            - name: HF_HOME
+              value: "/home/stud/schneller/.cache"
+            - name: CUDA_LAUNCH_BLOCKING
+              value: "1"
+            - name: PYTORCH_CUDA_ALLOC_CONF
+              value: "expandable_segments:True"
+          resources:
+            limits: &resources
+              nvidia.com/gpu: "1"
+              cpu: "2"
+              memory: "4Gi"
+            requests: *resources # sets requests = limits
+          workingDir: /home/stud/schneller/projects/ML4Nets/pathpyG # Verzeichnis im Container setzen
+          command: ["python", "/home/stud/schneller/projects/ML4Nets/pathpyG/src/pathpyG/visualisations/Project_JS/Evaluation.py"]
+          volumeMounts:
+            - mountPath: /home/stud/schneller # directory IN the container
+              name: &ceph_mount_name localdir # matches volume-name from below
+            - mountPath: /dev/shm # fixes a common pytorch issue. just always mount this here
+              name: dshm
+      imagePullSecrets:
+        - name: lsx-registry
+      restartPolicy: "Never"
+      volumes:
+        - name: *ceph_mount_name # gets evaluated as "localdir"
+          cephfs:
+            monitors:
+              - 132.187.14.16,132.187.14.17,132.187.14.19,132.187.14.20  # Not important for you, just copy along
+            user: studschneller  # <namespace>
+            path: "/home/stud/schneller" # The path you want to mount
+            secretRef: # The name of the secret for auth. Is always "ceph-secret"
+              name: ceph-secret
+        - name: dshm # "needs" to be copied along, see above
+          emptyDir:
+            medium: "Memory"
+      #nodeSelector:
+        #gputype: "rtx8000"

@@ -85,7 +85,7 @@ def stress_loss(layout: torch.nn.Embedding|torch.Tensor, shortest_path_dist: tor
     return loss
 
 
-def SGD_stress_torch(data: pp.TemporalGraph|pp.PathData, iterations: int, delta: int = 1, learning_rate: float = 0.01, initial_positions: torch.Tensor | None = None) -> dict:
+def SGD_stress_torch(data: pp.TemporalGraph|pp.PathData, iterations: int, delta: int = 1, learning_rate: float = 0.01, initial_positions: torch.Tensor | None = None) -> tuple[dict, bool]:
     """
     Performs stress minimization using stochastic gradient descent (SGD) to optimize the layout of nodes in a graph or path data.
 
@@ -102,6 +102,7 @@ def SGD_stress_torch(data: pp.TemporalGraph|pp.PathData, iterations: int, delta:
 
     Returns:
         dict: A dictionary with node identifiers as keys and their corresponding 2D layout coordinates as values.
+        bool: True, if layout is not random
 
     Example:
         >>> data = pp.TemporalGraph(...)  # A temporal graph object
@@ -118,11 +119,17 @@ def SGD_stress_torch(data: pp.TemporalGraph|pp.PathData, iterations: int, delta:
         graph = pp.MultiOrderModel.from_PathData(data, max_order=1).layers[1]
         dist = shortest_paths_path_data(path_data=data)
     else:
-        return {}
+        return {}, False
+    
+    dist = torch.tensor(dist)
     
     if(torch.isinf(dist).any()):
         print("Error: The graph or PathData isn't connected.")
-        return {}
+        positions = torch.rand((graph.n, 2))*100
+        layout = {}
+        for node in graph.nodes:
+            layout[node] = positions[graph.mapping.to_idx(node)].tolist()
+        return layout, False
 
     # initialize embedding
     num_nodes =  graph.n 
@@ -159,7 +166,7 @@ def SGD_stress_torch(data: pp.TemporalGraph|pp.PathData, iterations: int, delta:
     for node in graph.nodes:
         layout[node] = embedding(torch.tensor(graph.mapping.to_idx(node))).tolist()
 
-    return layout
+    return layout, True
 
 def Adam_stress_torch(data: pp.TemporalGraph|pp.PathData, iterations: int, delta: int = 1, learning_rate: float = 0.01, initial_positions: torch.Tensor | None = None):
 
@@ -180,6 +187,7 @@ def Adam_stress_torch(data: pp.TemporalGraph|pp.PathData, iterations: int, delta
 
     Returns:
         dict: A dictionary with node identifiers as keys and their corresponding 2D layout coordinates as values.
+        bool: True, if layout is not random
 
     Example:
         >>> data = pp.TemporalGraph(...)  # A temporal graph object
@@ -196,11 +204,17 @@ def Adam_stress_torch(data: pp.TemporalGraph|pp.PathData, iterations: int, delta
         graph = pp.MultiOrderModel.from_PathData(data, max_order=1).layers[1]
         dist = shortest_paths_path_data(path_data=data)
     else:
-        return {}
+        return {}, False
+
+    dist = torch.tensor(dist)
 
     if(torch.isinf(dist).any()):
         print("Error: The graph or PathData isn't connected.")
-        return {}
+        positions = torch.rand((graph.n, 2))*100
+        layout = {}
+        for node in graph.nodes:
+            layout[node] = positions[graph.mapping.to_idx(node)].tolist()
+        return layout, False
 
     # initialize embedding
     num_nodes =  graph.n 
@@ -237,10 +251,10 @@ def Adam_stress_torch(data: pp.TemporalGraph|pp.PathData, iterations: int, delta
     for node in graph.nodes:
         layout[node] = embedding(torch.tensor(graph.mapping.to_idx(node))).tolist()
 
-    return layout
+    return layout, True
 
 
-def SGD_stress_paper(data: pp.TemporalGraph|pp.PathData, iterations: int, delta:int = 1, initial_positions: torch.Tensor | None = None, learning_rate: float = 0.01, eta: float = 1, decay: float = 0.5) -> dict:
+def SGD_stress_paper(data: pp.TemporalGraph|pp.PathData, iterations: int, delta:int = 1, initial_positions: torch.Tensor | None = None, learning_rate: float = 0.01, eta: float = 1, decay: float = 0.5) -> tuple[dict, bool]:
     
     """
     Performs stress minimization using Stochastic Gradient Descent (SGD) to optimize the layout of nodes in a graph or path data.
@@ -266,6 +280,7 @@ def SGD_stress_paper(data: pp.TemporalGraph|pp.PathData, iterations: int, delta:
 
     Returns:
         dict: A dictionary with node identifiers as keys and their corresponding 2D layout coordinates as values.
+        bool: True, if layout is not random
 
     Example:
         >>> data = pp.TemporalGraph(...)  # A temporal graph object
@@ -281,11 +296,17 @@ def SGD_stress_paper(data: pp.TemporalGraph|pp.PathData, iterations: int, delta:
         graph = pp.MultiOrderModel.from_PathData(data, max_order=1).layers[1]
         dist = shortest_paths_path_data(path_data=data)
     else:
-        return {}
+        return {}, False
+    
+    dist = torch.tensor(dist)
     
     if(torch.isinf(dist).any()):
         print("Error: The graph or PathData isn't connected.")
-        return {}
+        positions = torch.rand((graph.n, 2))*100
+        layout = {}
+        for node in graph.nodes:
+            layout[node] = positions[graph.mapping.to_idx(node)].tolist()
+        return layout, False
     
     # initialize initial_positions if not given
     if initial_positions is None:
@@ -327,7 +348,7 @@ def SGD_stress_paper(data: pp.TemporalGraph|pp.PathData, iterations: int, delta:
     for node in graph.nodes:
         layout[node] = positions[graph.mapping.to_idx(node)].tolist()
 
-    return layout
+    return layout, True
 
 
 
