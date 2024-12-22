@@ -590,7 +590,7 @@ def HotVisSlow(data: pp.TemporalGraph | pp.PathData, orders: int, iterations: in
     return layout
     
 # version from paper. There is porobabily a mistake in it.
-def causal_path_dispersion_paper(data, layout, delta=1, steps: list = [], runs: list = []):
+def causal_path_dispersion_paper_(data, layout, delta=1, steps: list = [], runs: list = []):
     if isinstance(data, pp.TemporalGraph):
         if len(steps) == 0:
             steps = [max(3, int(data.n/3))]

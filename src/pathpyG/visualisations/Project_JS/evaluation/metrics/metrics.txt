@@ -1,0 +1,16 @@
+
+
+
+###################################### Flights ######################################################
+Edge Crossing 2: 69671.0
+Causal Path Dispersion 2: 0.2879096965175209
+Closeness Eccentricity 2: 0.26661841719212337
+Stress 2: 107765.28125
+Edge Crossing 3: 69671.0
+Causal Path Dispersion 3: 0.2879096965175209
+Closeness Eccentricity 3: 0.26661841719212337
+Stress 3: 107765.28125
+Edge Crossing 5: 69671.0
+Causal Path Dispersion 5: 0.2879096965175209
+Closeness Eccentricity 5: 0.26661841719212337
+Stress 5: 107765.28125
