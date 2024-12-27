@@ -68,21 +68,21 @@ def stress_loss(layout: torch.nn.Embedding|torch.Tensor, shortest_path_dist: tor
 
     if isinstance(layout, torch.nn.Embedding):
         for i in range(layout.num_embeddings):
-            for j in range(i + 1, layout.num_embeddings):
+            for j in range(layout.num_embeddings):
                 delta = layout(torch.tensor(i)) - layout(torch.tensor(j))
                 distance = torch.norm(delta)
                 loss += ((distance - shortest_path_dist[i, j])/shortest_path_dist[i, j]) ** 2  
 
     elif isinstance(layout, torch.Tensor):
         for i in range(layout.shape[0]):
-            for j in range(i + 1, layout.shape[0]):
+            for j in range(layout.shape[0]):
                 delta = layout[i] - layout[j]
                 distance = torch.norm(delta)
                 loss += ((distance - shortest_path_dist[i, j])/shortest_path_dist[i, j]) ** 2  
     else:
         return None
 
-    return loss
+    return loss/2
 
 
 def SGD_stress_torch(data: pp.TemporalGraph|pp.PathData, iterations: int, delta: int = 1, learning_rate: float = 0.01, initial_positions: torch.Tensor | None = None) -> tuple[dict, bool]:
