@@ -343,3 +343,411 @@ Causal Path Dispersion FR    : 0.34570013688684453
 Closeness Eccentricity FR    : 0.30917638827207466
 Stress FR                    : 10692.0576171875
 DELTA                        : 1
+
+
+#################################### Durchlauf korrigierte Stress Version ######################################
+#
+#
+#
+#
+#
+
+
+###################################### Synthetic Graph ######################################################
+Edge Crossing 2              : 22451.0
+Causal Path Dispersion 2     : 0.790830171021868
+Closeness Eccentricity 2     : 1.2287063720646643
+Cluster Distance Ratio 2     : tensor([0.4850, 0.7386, 0.7097])
+Stress 2                     : 1250.882080078125
+Edge Crossing 3              : 22396.0
+Causal Path Dispersion 3     : 0.8086228050226427
+Closeness Eccentricity 3     : 1.2040539685330707
+Cluster Distance Ratio 3     : tensor([0.4941, 0.5324, 0.5174])
+Stress 3                     : 1251.149169921875
+Edge Crossing 5              : 23157.0
+Causal Path Dispersion 5     : 0.8215318498252421
+Closeness Eccentricity 5     : 0.8343714037720269
+Cluster Distance Ratio 5     : tensor([0.4813, 0.7800, 0.6068])
+Stress 5                     : 1239.2830810546875
+Edge Crossing Paper          : 23343.0
+Causal Path Dispersion Paper : 0.8346478744173075
+Closeness Eccentricity Paper : 0.8343390413736781
+Cluster Distance Ratio Paper : tensor([1.0272, 0.7653, 1.0306])
+Stress Paper                 : 66.96905517578125
+Edge Crossing Adam           : 23204.0
+Causal Path Dispersion Adam  : 0.8134857891356171
+Closeness Eccentricity Adam  : 1.0332261625158028
+Cluster Distance Ratio Adam  : tensor([0.9712, 0.8173, 0.9581])
+Stress Adam                  : 66.75678253173828
+Edge Crossing Torch          : 22934.0
+Causal Path Dispersion Torch : 0.8233656111178621
+Closeness Eccentricity Torch : 1.0247532806778339
+Cluster Distance Ratio Torch : tensor([1.0275, 0.9590, 0.8120])
+Stress Torch                 : 66.90168762207031
+Edge Crossing FR             : 22891.0
+Causal Path Dispersion FR    : 0.831904492028871
+Closeness Eccentricity FR    : 0.9526243707547657
+Cluster Distance Ratio FR    : tensor([1.0360, 0.8897, 0.9990])
+Stress FR                    : 398.1000061035156
+DELTA                        : 1
+
+
+
+###################################### Office ######################################################
+Edge Crossing 2              : 27518.0
+Causal Path Dispersion 2     : 0.4211382791565892
+Closeness Eccentricity 2     : 0.7966787485722441
+Cluster Distance Ratio 2     : tensor([0.5267, 0.4037, 0.5876, 1.1140, 0.3516])
+Stress 2                     : nan
+Edge Crossing 3              : 23521.0
+Causal Path Dispersion 3     : 0.3808583389656173
+Closeness Eccentricity 3     : 0.6836333040068616
+Cluster Distance Ratio 3     : tensor([0.5023, 0.4175, 0.5865, 0.8172, 0.2310])
+Stress 3                     : nan
+Edge Crossing 5              : 24753.0
+Causal Path Dispersion 5     : 0.4014527192958478
+Closeness Eccentricity 5     : 0.564241160814311
+Cluster Distance Ratio 5     : tensor([0.5330, 0.4282, 0.6150, 0.4558, 0.2104])
+Stress 5                     : nan
+Edge Crossing Paper          : 69922.0
+Causal Path Dispersion Paper : 0.752470489566943
+Closeness Eccentricity Paper : 1.0365474958804992
+Cluster Distance Ratio Paper : tensor([0.9833, 0.9040, 1.0011, 0.8533, 0.9333])
+Stress Paper                 : nan
+Edge Crossing Adam           : 69237.0
+Causal Path Dispersion Adam  : 0.7302116353372317
+Closeness Eccentricity Adam  : 1.083927277462835
+Cluster Distance Ratio Adam  : tensor([0.8976, 0.9747, 0.9606, 0.8307, 1.0774])
+Stress Adam                  : nan
+Edge Crossing Torch          : 65600.0
+Causal Path Dispersion Torch : 0.7011697256008719
+Closeness Eccentricity Torch : 0.9779368831355788
+Cluster Distance Ratio Torch : tensor([0.8897, 0.9373, 1.0135, 0.8746, 0.9819])
+Stress Torch                 : nan
+Edge Crossing FR             : 24233.0
+Causal Path Dispersion FR    : 0.37263485084026665
+Closeness Eccentricity FR    : 0.6881225627588697
+Cluster Distance Ratio FR    : tensor([0.3902, 0.5465, 0.4399, 0.4366, 0.1895])
+Stress FR                    : nan
+DELTA                        : 50
+The graph wasn't connected, so the SGD paper versions returned random layoutThe graph wasn't connected, so the SGD adam versions returned random layoutThe graph wasn't connected, so the SGD torch versions returned random layout
+
+
+###################################### Tube ######################################################
+Edge Crossing 2              : 126.0
+Causal Path Dispersion 2     : 0.503852297849946
+Closeness Eccentricity 2     : 0.36148608874168453
+Stress 2                     : nan
+Edge Crossing 3              : 84.0
+Causal Path Dispersion 3     : 0.5038423466099441
+Closeness Eccentricity 3     : 0.3138811734851034
+Stress 3                     : nan
+Edge Crossing 5              : 193.0
+Causal Path Dispersion 5     : 0.5121169968598798
+Closeness Eccentricity 5     : 0.6191164689884295
+Stress 5                     : nan
+Edge Crossing Paper          : 11507.0
+Causal Path Dispersion Paper : 0.9589550809038988
+Closeness Eccentricity Paper : 0.9194684093808543
+Stress Paper                 : nan
+Edge Crossing Adam           : 11769.0
+Causal Path Dispersion Adam  : 0.901155272908183
+Closeness Eccentricity Adam  : 0.8586985890325456
+Stress Adam                  : nan
+Edge Crossing Torch          : 12303.0
+Causal Path Dispersion Torch : 0.9460444379589209
+Closeness Eccentricity Torch : 1.0161508831221362
+Stress Torch                 : nan
+Edge Crossing FR             : 191.0
+Causal Path Dispersion FR    : 0.5358627668248495
+Closeness Eccentricity FR    : 0.5167418035028323
+Stress FR                    : nan
+DELTA                        : 1
+The graph wasn't connected, so the SGD paper versions returned random layoutThe graph wasn't connected, so the SGD adam versions returned random layoutThe graph wasn't connected, so the SGD torch versions returned random layout
+
+
+###################################### Wikipedia ######################################################
+Edge Crossing 2              : 131741.0
+Causal Path Dispersion 2     : 0.566155902591305
+Closeness Eccentricity 2     : 0.4707543548927635
+Stress 2                     : nan
+Edge Crossing 3              : 125115.0
+Causal Path Dispersion 3     : 0.542571257853113
+Closeness Eccentricity 3     : 0.3841130888601684
+Stress 3                     : nan
+Edge Crossing 5              : 143198.0
+Causal Path Dispersion 5     : 0.5907898119282644
+Closeness Eccentricity 5     : 0.3943964551292993
+Stress 5                     : nan
+Edge Crossing Paper          : 230417.0
+Causal Path Dispersion Paper : 1.028702822846213
+Closeness Eccentricity Paper : 1.021619222080922
+Stress Paper                 : nan
+Edge Crossing Adam           : 224033.0
+Causal Path Dispersion Adam  : 0.9535028170429725
+Closeness Eccentricity Adam  : 0.9520907347230584
+Stress Adam                  : nan
+Edge Crossing Torch          : 223161.0
+Causal Path Dispersion Torch : 0.975827997282879
+Closeness Eccentricity Torch : 1.068772147997594
+Stress Torch                 : nan
+Edge Crossing FR             : 89524.0
+Causal Path Dispersion FR    : 0.8204209870590025
+Closeness Eccentricity FR    : 0.5809594994650904
+Stress FR                    : nan
+DELTA                        : 1
+The graph wasn't connected, so the SGD paper versions returned random layoutThe graph wasn't connected, so the SGD adam versions returned random layoutThe graph wasn't connected, so the SGD torch versions returned random layout
+
+
+###################################### Flights ######################################################
+Edge Crossing 2              : 71097.0
+Causal Path Dispersion 2     : 0.2882640263609161
+Closeness Eccentricity 2     : 0.28363344770909005
+Stress 2                     : 108488.7265625
+Edge Crossing 3              : 58342.0
+Causal Path Dispersion 3     : 0.28658912246756374
+Closeness Eccentricity 3     : 0.2576368155126448
+Stress 3                     : 97726.9296875
+Edge Crossing 5              : 71997.0
+Causal Path Dispersion 5     : 0.2807503985141542
+Closeness Eccentricity 5     : 0.25457522409837313
+Stress 5                     : 96324.484375
+Edge Crossing Paper          : 89365.0
+Causal Path Dispersion Paper : 0.3560633816416949
+Closeness Eccentricity Paper : 0.3143530460195698
+Stress Paper                 : 2371.1689453125
+Edge Crossing Adam           : 83920.0
+Causal Path Dispersion Adam  : 0.361933446625038
+Closeness Eccentricity Adam  : 0.32703784518911777
+Stress Adam                  : 2356.90283203125
+Edge Crossing Torch          : 101958.0
+Causal Path Dispersion Torch : 0.3514094458956768
+Closeness Eccentricity Torch : 0.30960099765325155
+Stress Torch                 : 2465.910888671875
+Edge Crossing FR             : 61625.0
+Causal Path Dispersion FR    : 0.35622797702720105
+Closeness Eccentricity FR    : 0.3767191715121734
+Stress FR                    : 10627.28515625
+DELTA                        : 1
+
+
+#################################### Durchlauf korrigierte Stress Version 2 ######################################
+#
+#
+#
+#
+#
+
+
+
+###################################### Synthetic Graph ######################################################
+Edge Crossing 2              : 22584.0
+Causal Path Dispersion 2     : 0.8044899496400337
+Closeness Eccentricity 2     : 0.9194850213469012
+Cluster Distance Ratio 2     : tensor([0.5446, 0.4861, 0.5323])
+Stress 2                     : 1258.125
+
+Edge Crossing 3              : 22567.0
+Causal Path Dispersion 3     : 0.8063295082640137
+Closeness Eccentricity 3     : 1.1506570660099176
+Cluster Distance Ratio 3     : tensor([0.5545, 0.5492, 0.5276])
+Stress 3                     : 1244.7322998046875
+
+Edge Crossing 5              : 22496.0
+Causal Path Dispersion 5     : 0.8108884310861977
+Closeness Eccentricity 5     : 1.2433069175995686
+Cluster Distance Ratio 5     : tensor([0.5377, 0.8003, 0.8380])
+Stress 5                     : 1224.0843505859375
+
+Edge Crossing Paper          : 23427.0
+Causal Path Dispersion Paper : 0.8337478679217781
+Closeness Eccentricity Paper : 0.9536136109165133
+Cluster Distance Ratio Paper : tensor([0.7910, 0.7097, 1.0156])
+Stress Paper                 : 66.92721557617188
+
+Edge Crossing Adam           : 23174.0
+Causal Path Dispersion Adam  : 0.8253319482912406
+Closeness Eccentricity Adam  : 1.0245949741314972
+Cluster Distance Ratio Adam  : tensor([0.8446, 0.9854, 0.7929])
+Stress Adam                  : 66.73497772216797
+
+Edge Crossing Torch          : 22909.0
+Causal Path Dispersion Torch : 0.8192977887530488
+Closeness Eccentricity Torch : 0.8680959348202881
+Cluster Distance Ratio Torch : tensor([0.9745, 0.9505, 1.0119])
+Stress Torch                 : 66.91865539550781
+
+Edge Crossing FR             : 22772.0
+Causal Path Dispersion FR    : 0.8495024879251144
+Closeness Eccentricity FR    : 1.1068207157410448
+Cluster Distance Ratio FR    : tensor([0.9567, 1.0054, 0.9228])
+Stress FR                    : 395.5680236816406
+
+DELTA                        : 1
+
+
+
+###################################### Office ######################################################
+Edge Crossing 2              : 29757.0
+Causal Path Dispersion 2     : 0.4441712118439523
+Closeness Eccentricity 2     : 0.7921383884059948
+Cluster Distance Ratio 2     : tensor([0.5831, 0.4564, 0.6285, 0.8642, 0.3670])
+Stress 2                     : nan
+
+Edge Crossing 3              : 22614.0
+Causal Path Dispersion 3     : 0.3823763165405113
+Closeness Eccentricity 3     : 0.8278207641765829
+Cluster Distance Ratio 3     : tensor([0.4853, 0.4168, 0.5704, 0.4835, 0.2310])
+Stress 3                     : nan
+
+Edge Crossing 5              : 24853.0
+Causal Path Dispersion 5     : 0.3822591147406217
+Closeness Eccentricity 5     : 0.515536140595814
+Cluster Distance Ratio 5     : tensor([0.5614, 0.4441, 0.6285, 0.4415, 0.2102])
+Stress 5                     : nan
+
+Edge Crossing Paper          : 66020.0
+Causal Path Dispersion Paper : 0.6649192996148706
+Closeness Eccentricity Paper : 0.8050763046553711
+Cluster Distance Ratio Paper : tensor([0.9900, 1.0288, 0.9251, 0.3942, 0.9665])
+Stress Paper                 : nan
+
+Edge Crossing Adam           : 68764.0
+Causal Path Dispersion Adam  : 0.7103102957374403
+Closeness Eccentricity Adam  : 0.9690875492183336
+Cluster Distance Ratio Adam  : tensor([0.8406, 0.9882, 1.0312, 0.8366, 1.0008])
+Stress Adam                  : nan
+
+Edge Crossing Torch          : 66898.0
+Causal Path Dispersion Torch : 0.7498126164916142
+Closeness Eccentricity Torch : 1.133203401247905
+Cluster Distance Ratio Torch : tensor([1.0157, 1.0009, 0.9628, 1.1113, 0.9194])
+Stress Torch                 : nan
+
+Edge Crossing FR             : 22437.0
+Causal Path Dispersion FR    : 0.35403453046994005
+Closeness Eccentricity FR    : 0.8200476454650562
+Cluster Distance Ratio FR    : tensor([0.3998, 0.4373, 0.4503, 0.2718, 0.1809])
+Stress FR                    : nan
+
+DELTA                        : 50
+The graph wasn't connected, so the SGD paper versions returned random layoutThe graph wasn't connected, so the SGD adam versions returned random layoutThe graph wasn't connected, so the SGD torch versions returned random layout
+
+
+###################################### Tube ######################################################
+Edge Crossing 2              : 72.0
+Causal Path Dispersion 2     : 0.4896376949218661
+Closeness Eccentricity 2     : 0.3238235777171696
+Stress 2                     : nan
+
+Edge Crossing 3              : 127.0
+Causal Path Dispersion 3     : 0.5210443097980572
+Closeness Eccentricity 3     : 0.338341671820004
+Stress 3                     : nan
+
+Edge Crossing 5              : 237.0
+Causal Path Dispersion 5     : 0.5576612339261361
+Closeness Eccentricity 5     : 0.5134950988973279
+Stress 5                     : nan
+
+Edge Crossing Paper          : 11836.0
+Causal Path Dispersion Paper : 0.9602115526150503
+Closeness Eccentricity Paper : 0.9618471412673553
+Stress Paper                 : nan
+
+Edge Crossing Adam           : 12917.0
+Causal Path Dispersion Adam  : 0.9299884178277121
+Closeness Eccentricity Adam  : 0.8437931369244194
+Stress Adam                  : nan
+
+Edge Crossing Torch          : 12303.0
+Causal Path Dispersion Torch : 0.8864323679622664
+Closeness Eccentricity Torch : 0.8876891454696505
+Stress Torch                 : nan
+
+Edge Crossing FR             : 262.0
+Causal Path Dispersion FR    : 0.5458288844308957
+Closeness Eccentricity FR    : 0.5013855871539737
+Stress FR                    : nan
+
+DELTA                        : 1
+The graph wasn't connected, so the SGD paper versions returned random layoutThe graph wasn't connected, so the SGD adam versions returned random layoutThe graph wasn't connected, so the SGD torch versions returned random layout
+
+
+###################################### Wikipedia ######################################################
+Edge Crossing 2              : 120757.0
+Causal Path Dispersion 2     : 0.5983817995840187
+Closeness Eccentricity 2     : 0.4475458688693087
+Stress 2                     : nan
+
+Edge Crossing 3              : 134573.0
+Causal Path Dispersion 3     : 0.5530487797434024
+Closeness Eccentricity 3     : 0.4512134376819096
+Stress 3                     : nan
+
+Edge Crossing 5              : 124993.0
+Causal Path Dispersion 5     : 0.4973251196381555
+Closeness Eccentricity 5     : 0.3811513354131433
+Stress 5                     : nan
+
+Edge Crossing Paper          : 226268.0
+Causal Path Dispersion Paper : 1.0402130361071142
+Closeness Eccentricity Paper : 1.0610036526646478
+Stress Paper                 : nan
+
+Edge Crossing Adam           : 237178.0
+Causal Path Dispersion Adam  : 0.833310015925265
+Closeness Eccentricity Adam  : 0.8619001076072907
+Stress Adam                  : nan
+
+Edge Crossing Torch          : 221729.0
+Causal Path Dispersion Torch : 0.9276365521565368
+Closeness Eccentricity Torch : 1.0125964440653348
+Stress Torch                 : nan
+
+Edge Crossing FR             : 89958.0
+Causal Path Dispersion FR    : 0.828137632034445
+Closeness Eccentricity FR    : 0.5958483458526941
+Stress FR                    : nan
+
+DELTA                        : 1
+The graph wasn't connected, so the SGD paper versions returned random layoutThe graph wasn't connected, so the SGD adam versions returned random layoutThe graph wasn't connected, so the SGD torch versions returned random layout
+
+
+###################################### Flights ######################################################
+Edge Crossing 2              : 72235.0
+Causal Path Dispersion 2     : 0.28537674407724717
+Closeness Eccentricity 2     : 0.28546659810770825
+Stress 2                     : 101851.0703125
+
+Edge Crossing 3              : 71611.0
+Causal Path Dispersion 3     : 0.2811776374595373
+Closeness Eccentricity 3     : 0.25304183256297436
+Stress 3                     : 96797.296875
+
+Edge Crossing 5              : 62526.0
+Causal Path Dispersion 5     : 0.2816451431843459
+Closeness Eccentricity 5     : 0.2611201009668535
+Stress 5                     : 96103.703125
+
+Edge Crossing Paper          : 87778.0
+Causal Path Dispersion Paper : 0.3527449258487508
+Closeness Eccentricity Paper : 0.3342815217001675
+Stress Paper                 : 2372.35009765625
+
+Edge Crossing Adam           : 84562.0
+Causal Path Dispersion Adam  : 0.35512868840138523
+Closeness Eccentricity Adam  : 0.3395482963153705
+Stress Adam                  : 2329.656982421875
+
+Edge Crossing Torch          : 97415.0
+Causal Path Dispersion Torch : 0.3511580202933725
+Closeness Eccentricity Torch : 0.3073269287798831
+Stress Torch                 : 2453.7080078125
+
+Edge Crossing FR             : 61184.0
+Causal Path Dispersion FR    : 0.35385698767618246
+Closeness Eccentricity FR    : 0.35214469779909907
+Stress FR                    : 10613.9775390625
+
+DELTA                        : 1

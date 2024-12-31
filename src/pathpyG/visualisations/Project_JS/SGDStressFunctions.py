@@ -52,15 +52,15 @@ def stress_loss(layout: torch.nn.Embedding|torch.Tensor, shortest_path_dist: tor
 
     Args:
         layout (torch.nn.Embedding or torch.Tensor): The layout of nodes, either as an `Embedding` or a 2D tensor.
-        shortest_path_dist (torch.Tensor): A tensor of shortest path distances between node pairs in the original graph.
+        dist (torch.Tensor): A tensor of shortest path distances between node pairs in the original graph.
 
     Returns:
         float: The computed stress loss value.
 
     Example:
         >>> layout = torch.rand((5, 2))  # Example layout with 5 nodes in 2D space
-        >>> shortest_path_dist = torch.rand((5, 5))  # Example shortest path distance matrix
-        >>> loss = stress_loss(layout, shortest_path_dist)
+        >>> dist = torch.rand((5, 5))  # Example shortest path distance matrix
+        >>> loss = stress_loss(layout, dist)
         >>> print(loss)
     """
 
@@ -69,16 +69,18 @@ def stress_loss(layout: torch.nn.Embedding|torch.Tensor, shortest_path_dist: tor
     if isinstance(layout, torch.nn.Embedding):
         for i in range(layout.num_embeddings):
             for j in range(layout.num_embeddings):
-                delta = layout(torch.tensor(i)) - layout(torch.tensor(j))
-                distance = torch.norm(delta)
-                loss += ((distance - shortest_path_dist[i, j])/shortest_path_dist[i, j]) ** 2  
+                if j != i:
+                    delta = layout(torch.tensor(i)) - layout(torch.tensor(j))
+                    distance = torch.norm(delta)
+                    loss += ((distance - shortest_path_dist[i, j])/shortest_path_dist[i, j]) ** 2
 
     elif isinstance(layout, torch.Tensor):
         for i in range(layout.shape[0]):
             for j in range(layout.shape[0]):
-                delta = layout[i] - layout[j]
-                distance = torch.norm(delta)
-                loss += ((distance - shortest_path_dist[i, j])/shortest_path_dist[i, j]) ** 2  
+                if j != i:
+                    delta = layout[i] - layout[j]
+                    distance = torch.norm(delta)
+                    loss += ((distance - shortest_path_dist[i, j])/shortest_path_dist[i, j]) ** 2  
     else:
         return None
 
@@ -315,7 +317,8 @@ def SGD_stress_paper(data: pp.TemporalGraph|pp.PathData, iterations: int, delta:
     positions = torch.clone(initial_positions)
 
     # get all possible node pairs
-    node_pairs = torch.combinations(torch.arange(graph.n), r=2, with_replacement=False)
+    node_pairs = torch.cartesian_prod(torch.arange(graph.n), torch.arange(graph.n))
+    node_pairs = node_pairs[node_pairs[:, 0] != node_pairs[:, 1]]
 
     for i in range(iterations):
         # shuffle order of node pairs
