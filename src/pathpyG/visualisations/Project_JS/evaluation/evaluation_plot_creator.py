@@ -109,7 +109,7 @@ edge_crossing_office = {
     "Fruchtermann-Reingold": 22437,
 }
 
-bar_chart(edge_crossing_office, "edge_crossing_office", "Stress Values Office Dataset", "Edge Crosing")
+bar_chart(edge_crossing_office, "edge_crossing_office", "Edge Crossing Office Dataset", "Edge Crosing")
 
 edge_crossing_tube = {
     "HOTVis 2": 72,
@@ -118,7 +118,7 @@ edge_crossing_tube = {
     "Fruchtermann-Reingold": 262,
 }
 
-bar_chart(edge_crossing_tube, "edge_crossing_tube", "Stress Values Tube Dataset", "Edge Crosing")
+bar_chart(edge_crossing_tube, "edge_crossing_tube", "Edge Crossing Tube Dataset", "Edge Crosing")
 
 closeness_eccentricity_flights = {
     'HOTVis 2': 0.28546659810770825,

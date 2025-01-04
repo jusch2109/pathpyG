@@ -4,108 +4,108 @@ import pathpyG as pp
 from typing import Iterable, Union, Any, Optional
 
 
-def HotVis(data: pp.TemporalGraph|pp.PathData, orders: int, iterations: int, delta: int, 
-           alpha: torch.Tensor | None = None, initial_positions: torch.Tensor | None = None, force: int = 1) -> dict:
-    
+import torch
+import torch_geometric
+import pathpyG as pp
+from typing import Union
 
+
+def HotVis(
+    data: Union[pp.TemporalGraph, pp.PathData], 
+    orders: int, 
+    iterations: int, 
+    delta: int, 
+    alpha: torch.Tensor = None, 
+    initial_positions: torch.Tensor = None, 
+    force: int = 1
+) -> dict:
     """
-    Generates a layout for visualizing a temporal graph or path data using a force-directed model. (following 
-    Perri, V., & Scholtes, I. (2020). HOTVis: Higher-Order Time-Aware Visualisation of Dynamic Graphs. arXiv. https://arxiv.org/abs/1908.05976)
+    Generates a layout for visualizing a temporal graph or path data using a force-directed model. (GPU compatible)
 
     Args:
-        data (pp.TemporalGraph | pp.PathData): The input, either a temporal graph or path data, for which the layout is to be created.
-        orders (int): The number of higher orders to consider for constructing the model and calculating the layout.
-        iterations (int): The number of iterations for the force-directed optimization process.
-        delta (int): A parameter defining the time window for paths in the temporal graph (not considered for PathData objects).
-        alpha (torch.Tensor, optional): A tensor of weights for each order. Defaults to a tensor of ones.
-        initial_positions (torch.Tensor, optional): Initial positions of nodes in the layout. If not provided, 
-            random positions are generated.
-        force (int): A parameter controlling the repulsive and attractive forces in the layout. Default is 1.
+        data: TemporalGraph or PathData for which the layout is to be created.
+        orders: Number of higher orders to consider.
+        iterations: Number of iterations for the optimization.
+        delta: Time window for paths in the temporal graph.
+        alpha: Tensor of weights for each order (optional).
+        initial_positions: Initial positions of nodes (optional).
+        force: Controls the repulsive and attractive forces (default is 1).
 
     Returns:
-        dict: A dictionary mapping nodes to their 2D positions in the layout.
-            Keys are node identifiers, and values are lists representing [x, y] coordinates.
-
-    Raises:
-        ValueError: If the input data is not of type `pp.TemporalGraph` or `pp.PathData`.
-
-    Example:
-        >>> layout = HotVis(data=temporal_graph, orders=3, iterations=200, delta=1)
-        >>> print(layout)
-        {'node1': [x1, y1], 'node2': [x2, y2], ...}
+        dict: Dictionary mapping nodes to their 2D positions in the layout.
     """
+    # Select device
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     if isinstance(data, pp.TemporalGraph):
         mo_model = pp.MultiOrderModel.from_temporal_graph(data, delta=delta, max_order=orders)
     elif isinstance(data, pp.PathData):
         mo_model = pp.MultiOrderModel.from_PathData(data, max_order=orders)
     else:
-        return {}
+        raise ValueError("Input data must be of type `pp.TemporalGraph` or `pp.PathData`.")
 
-    if alpha is None:
-        alpha = torch.ones(orders)
-    if initial_positions is None:
-        initial_positions = torch.rand((mo_model.layers[1].n, 2))*100
-    A = torch.zeros((mo_model.layers[1].n, mo_model.layers[1].n))
+    # Initialize alpha and initial positions
+    alpha = alpha.to(device) if alpha is not None else torch.ones(orders, device=device)
+    initial_positions = (initial_positions.to(device) 
+                         if initial_positions is not None 
+                         else torch.rand((mo_model.layers[1].n, 2), device=device) * 100)
+    
+    # Adjacency matrix on device
+    A = torch.zeros((mo_model.layers[1].n, mo_model.layers[1].n), device=device)
 
-    # iterate over higher orders
+    # Iterate over higher orders
     for i in range(orders):
-        # get higher order graph
-        ho_graph = mo_model.layers[i+1]
+        ho_graph = mo_model.layers[i + 1]
 
-        # for edge ((v_0, ..., v_{k-1}), (v_1,...,v_k)) get nodes v_0 and v_k
-        nodes_start = ho_graph.data.node_sequence[:, 0][ho_graph.data.edge_index[0]]
-        nodes_end = ho_graph.data.node_sequence[:, -1][ho_graph.data.edge_index[1]]
-        # stack tensors for later use
-        indices = torch.stack((nodes_start, nodes_end), dim=0)
-        # get edge weights
-        edge_weights = ho_graph['edge_weight']
-        # remove duplicates while summing their weights up
+        # Get start and end nodes of higher-order edges
+        nodes_start = ho_graph.data.node_sequence[:, 0][ho_graph.data.edge_index[0]].to(device)
+        nodes_end = ho_graph.data.node_sequence[:, -1][ho_graph.data.edge_index[1]].to(device)
+        indices = torch.stack((nodes_start, nodes_end), dim=0).to(device)
+
+        # Edge weights
+        edge_weights = ho_graph['edge_weight'].to(device)
         indices, edge_weights = torch_geometric.utils.coalesce(indices, edge_weights)
-        # add weights to A
         A[indices[0], indices[1]] += alpha[i] * edge_weights
 
+    # Position update
     positions = initial_positions
     t = 0.1
-    dt = dt = t / float(iterations + 1)
-
-    delta = torch.zeros((positions.shape[0], positions.shape[0], positions.shape[1]))
-    # the inscrutable (but fast) version
+    dt = t / float(iterations + 1)
 
     for _ in pp.tqdm(range(iterations)):
-        # matrix of difference between points
-        delta = positions[torch.newaxis, :, :] - positions[:, torch.newaxis, :]
-        # distance between points
+        # Difference between points
+        delta = positions.unsqueeze(1) - positions.unsqueeze(0)
+
+        # Distance and its inverse
         distance = torch.linalg.norm(delta, dim=-1)
-        # enforce minimum distance of 0.01
         torch.clip(distance, 0.01, None, out=distance)
-        # calculate displacement of all nodes
+
+        # Displacement
         displacement = torch.einsum('ijk,ij->ik', delta,
-                                (A * distance / force - force**2 / distance**2))
-        # calculate length of displacements
+                                    (A * distance / force - force**2 / distance**2))
+
+        # Normalize displacement length
         length = torch.linalg.norm(displacement, dim=-1)
-        # enforce minimum length of 0.01
         length = torch.where(length < 0.01, 0.1, length)
-        # add temperature
         length_with_temp = torch.clamp(length, max=t)
-        # calculate the change of the postionions
-        delta_positions = torch.einsum('ij,i->ij', displacement, length_with_temp / length)
-        # update positions
+
+        # Update positions
+        delta_positions = displacement * (length_with_temp / length).unsqueeze(-1)
         positions += delta_positions
-        # cool temperature
+
+        # Cool temperature
         t -= dt
 
-    layout = {}
-    for node in mo_model.layers[1].nodes:
-        layout[node] = positions[mo_model.layers[1].mapping.to_idx(node)].tolist()
+    # Create layout dictionary
+    layout = {node: positions[mo_model.layers[1].mapping.to_idx(node)].tolist() 
+              for node in mo_model.layers[1].nodes}
 
     return layout
 
 
-def barycentre(layout: dict, nodes: list|None =None):
-    
+def barycentre(layout: dict, nodes=None):
     """
-    Computes the barycentre (geometric center) of a set of nodes in a given layout.
+    Computes the barycentre (geometric center) of a set of nodes in a given layout. (GPU compatible)
 
     Args:
         layout (dict): A dictionary mapping nodes to their 2D positions. 
@@ -115,26 +115,22 @@ def barycentre(layout: dict, nodes: list|None =None):
 
     Returns:
         torch.Tensor: A tensor representing the [x, y] coordinates of the barycentre.
-
-    Example:
-        >>> layout = {'node1': [0, 0], 'node2': [2, 2], 'node3': [4, 4]}
-        >>> center = barycentre(layout)
-        >>> print(center)
-        tensor([2., 2.])
-
-        >>> center_subset = barycentre(layout, nodes=['node1', 'node3'])
-        >>> print(center_subset)
-        tensor([2., 2.])
     """
+    # Select device (GPU or CPU)
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
     if nodes is None:
-        node_positions = torch.tensor(list(layout.values())).to(torch.float64)
+        node_positions = torch.tensor(list(layout.values()), device=device, dtype=torch.float64)
     else:
-        node_positions = torch.tensor([layout[node] for node in nodes]).to(torch.float64)
+        node_positions = torch.tensor([layout[node] for node in nodes], device=device, dtype=torch.float64)
+    
     return torch.mean(node_positions, dim=0)
 
 
-def causal_path_dispersion(data: pp.TemporalGraph|pp.PathData, layout: dict, delta: int =1, steps: list = [], runs: list = []):
+import torch
+import pathpyG as pp
 
+def causal_path_dispersion(data: pp.TemporalGraph|pp.PathData, layout: dict, delta: int = 1, steps: list = [], runs: list = []):
     """
     Computes the causal path dispersion, a measure of the spatial variability of paths in a graph layout.
 
@@ -143,9 +139,9 @@ def causal_path_dispersion(data: pp.TemporalGraph|pp.PathData, layout: dict, del
         layout (dict): A dictionary mapping nodes to their 2D positions. 
             Keys are node identifiers, and values are lists or tensors representing [x, y] coordinates.
         delta (int): The time window parameter for paths in temporal graphs. Default is 1.
-        steps (list, optional): A list of path lengths for random walks on the temporal graph. Not conidered for PathData objects.
+        steps (list, optional): A list of path lengths for random walks on the temporal graph. Not considered for PathData objects.
             Defaults to `[max(3, int(data.n/3))]` if not provided.
-        runs (list, optional): A list of the number of random walk runs to perform. Not conidered for PathData objects.
+        runs (list, optional): A list of the number of random walk runs to perform. Not considered for PathData objects.
             Defaults to `[int(data.n/2)]` if not provided.
 
     Returns:
@@ -157,6 +153,9 @@ def causal_path_dispersion(data: pp.TemporalGraph|pp.PathData, layout: dict, del
         0.85
     """
 
+    # Device selection (use CUDA if available)
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
     if isinstance(data, pp.TemporalGraph):
         if len(steps) == 0:
             steps = [max(3, int(data.n/3))]
@@ -166,26 +165,32 @@ def causal_path_dispersion(data: pp.TemporalGraph|pp.PathData, layout: dict, del
     elif isinstance(data, pp.PathData):
         paths = data
 
-    
+    # Initialize variables for computation
     numerator = 0
     multiplicator = 0
+
+    # Compute the numerator and multiplicator
     for i in range(paths.num_paths):
         path = paths.get_walk(i)
-        # get positions of nodes of path
-        position_nodes = torch.tensor([layout[node] for node in path])
-        # Add the summand of the corresponding path to the counter
-        numerator += torch.sum(torch.norm(position_nodes - barycentre(layout, path), dim=1))
+        position_nodes = torch.tensor([layout[node] for node in path], device=device)  # Positions on the device
+        numerator += torch.sum(torch.norm(position_nodes - barycentre(layout, path).to(device), dim=1))  # Barycentre on the device
         multiplicator += len(path)
-    numerator *= len(layout)
-    # calculate denominator
-    positions = torch.tensor(list(layout.values()))
-    denominator = torch.sum(torch.norm( positions - barycentre(layout), dim=1)) * multiplicator
-    return numerator/denominator
 
+    numerator *= len(layout)
+
+    # Calculate the denominator
+    positions = torch.tensor(list(layout.values()), device=device)  # Positions on the device
+    denominator = torch.sum(torch.norm(positions - barycentre(layout).to(device), dim=1)) * multiplicator  # Barycentre on the device
+
+    return numerator / denominator
+
+
+import torch
+import pathpyG as pp
 
 def closeness_centrality_paths(paths: pp.PathData):
     """
-    Computes the closeness centrality for nodes based on paths in the provided path data.
+    Computes the closeness centrality for nodes based on paths in the provided path data. (GPU compatible)
 
     Args:
         paths (PathData): The PathData object the closeness centralities should be based on.
@@ -199,37 +204,42 @@ def closeness_centrality_paths(paths: pp.PathData):
         {'node1': 0.75, 'node2': 0.65, ...}
     """
 
-    # Idea: construct two nxn-matrices, where each entry [i,j] is the numerator/denomintor 
+    # Device selection (use CUDA if available)
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+    # Idea: construct two nxn-matrices, where each entry [i,j] is the numerator/denominator 
     # of the summand for node j for cc of node i
     num_nodes = paths.mapping.num_ids()
     num_paths = paths.num_paths
 
-    # initialize numerator and denumerator
-    numerator = torch.zeros(num_nodes, num_nodes, dtype=torch.float32)
-    denominator = torch.zeros(num_nodes, num_nodes, dtype=torch.float32)
+    # Initialize numerator and denominator on the selected device (GPU or CPU)
+    numerator = torch.zeros(num_nodes, num_nodes, dtype=torch.float32, device=device)
+    denominator = torch.zeros(num_nodes, num_nodes, dtype=torch.float32, device=device)
 
     # Go through all paths
     for i in range(num_paths):
         path = paths.get_walk(i)
-        path_indices = torch.tensor(paths.mapping.to_idxs(path))
-        # get distances between all nodes (first row is distances between node path[0] and all others and so on)
-        distances = torch.abs(torch.arange(len(path)).unsqueeze(0) - torch.arange(len(path)).unsqueeze(1))
+        path_indices = torch.tensor(paths.mapping.to_idxs(path), device=device)
+        
+        # Get distances between all nodes (first row is distances between node path[0] and all others and so on)
+        distances = torch.abs(torch.arange(len(path), device=device).unsqueeze(0) - torch.arange(len(path), device=device).unsqueeze(1))
 
         # Update numerator and denominator
         numerator[path_indices.unsqueeze(1), path_indices] += 1
         denominator[path_indices.unsqueeze(1), path_indices] += distances
 
-    # calculate Closeness Centrality
+    # Calculate Closeness Centrality
     mask = denominator != 0
     closeness = torch.sum(torch.where(mask, numerator / denominator, torch.zeros_like(denominator)), dim=1)
 
+    # Mapping closeness values to nodes
     closeness_dict = {id: closeness[paths.mapping.to_idx(id)].item() for id in paths.mapping.node_ids}
 
     return closeness_dict
 
 
-def closeness_eccentricity(data: pp.TemporalGraph|pp.PathData, layout: dict, delta: int =1, percentile: float = 0.1, steps: list = [], runs: list = []):
 
+def closeness_eccentricity(data: pp.TemporalGraph|pp.PathData, layout: dict, delta: int = 1, percentile: float = 0.1, steps: list = [], runs: list = []):
     """
     Computes the closeness eccentricity, a measure of how central nodes with high closeness centrality 
     are positioned relative to the overall layout.
@@ -255,7 +265,10 @@ def closeness_eccentricity(data: pp.TemporalGraph|pp.PathData, layout: dict, del
         0.85
     """
 
-    # get closeness centrality of all nodes
+    # Device selection (use CUDA if available)
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+    # Get closeness centrality of all nodes
     if isinstance(data, pp.TemporalGraph):
         if len(steps) == 0:
             steps = [max(3, int(data.n/3))]
@@ -267,24 +280,26 @@ def closeness_eccentricity(data: pp.TemporalGraph|pp.PathData, layout: dict, del
         closeness_centrality = closeness_centrality_paths(data)
     else:
         return
-    closeness_values = torch.tensor(list(closeness_centrality.values()), dtype=torch.float32)
 
-    # determine treshold for upper percentile
+    # Convert closeness values to tensor on device
+    closeness_values = torch.tensor(list(closeness_centrality.values()), dtype=torch.float32, device=device)
+
+    # Determine threshold for upper percentile
     threshold = torch.quantile(closeness_values, 1 - percentile)
-    
-    # filter nodes based on treshold
+
+    # Filter nodes based on threshold
     keys = list(closeness_centrality.keys())
     percentile_keys = [keys[i] for i in torch.where(closeness_values >= threshold)[0]]
-    layout_percentile_nodes = torch.tensor([layout[key] for key in percentile_keys])
-    
-    # determine barycenter
-    barycenter_layout = barycentre(layout)
-    
-    # determine numerator and denominator of formula for closeness_eccentricity
+    layout_percentile_nodes = torch.tensor([layout[key] for key in percentile_keys], device=device)
+
+    # Determine barycenter
+    barycenter_layout = barycentre(layout).to(device)
+
+    # Determine numerator and denominator of formula for closeness_eccentricity
     numerator = torch.sum(torch.norm(layout_percentile_nodes - barycenter_layout, dim=1)) * len(layout)
-    all_layout_values = torch.tensor(list(layout.values()))
+    all_layout_values = torch.tensor(list(layout.values()), device=device)
     denominator = torch.sum(torch.norm(all_layout_values - barycenter_layout, dim=1)) * len(percentile_keys)
-    
+
     return numerator / denominator
 
 
@@ -302,11 +317,12 @@ def within_bounds(min_x, max_x, min_y, max_y, intersection_coordinates):
     Returns:
         torch.Tensor: Boolean tensor indicating whether each intersection point is within bounds.
     """
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    
     return (
         (min_x <= intersection_coordinates[:, 0]) & (intersection_coordinates[:, 0] <= max_x) &
         (min_y <= intersection_coordinates[:, 1]) & (intersection_coordinates[:, 1] <= max_y)
-    )
-
+    ).to(device)
 
 # intersection point must not be endpoint of edge
 def is_not_endpoint(coordinates, intersection_coordinates):
@@ -320,15 +336,14 @@ def is_not_endpoint(coordinates, intersection_coordinates):
     Returns:
         torch.Tensor: Boolean tensor indicating whether each intersection point is not an endpoint.
     """
-
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    
     return ~(
         ((intersection_coordinates[:, 0] == coordinates[0]) & (intersection_coordinates[:, 1] == coordinates[1])) |
         ((intersection_coordinates[:, 0] == coordinates[2]) & (intersection_coordinates[:, 1] == coordinates[3]))
-    )
-
+    ).to(device)
 
 def edge_crossing(data: pp.TemporalGraph | pp.PathData, layout: dict):
-
     """
     Counts the number of edge crossings in a graph layout.
 
@@ -344,8 +359,9 @@ def edge_crossing(data: pp.TemporalGraph | pp.PathData, layout: dict):
         >>> print(crossings)
         15
     """
-
-    # get static graph
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    
+    # Get static graph
     if isinstance(data, pp.TemporalGraph):
         # get undirected (since direction doesn't matter) static graph
         static_graph = data.to_static_graph().to_undirected()
@@ -353,56 +369,42 @@ def edge_crossing(data: pp.TemporalGraph | pp.PathData, layout: dict):
         static_graph = pp.MultiOrderModel.from_PathData(data, 1).layers[1]
     else:
         return
-    # get edges
+    
+    # Get edges
     edges = list(static_graph.edges)
-    # every edge {'a','b'} is contained two times (as ('a','b') and as ('b','a'))
-    # remove second entry, since direction isn't important for edge crossing
+    # Remove second entry, since direction isn't important for edge crossing
     edges = list(set(tuple(sorted(edge)) for edge in edges))
-    # create tensor containing [x_0, y_0, x_1, y_1] for each edge, where [x_0, y_0] is start and [x_1, y_1]is endpoint of the edge
-    edge_coordinates = torch.tensor([layout[key1] + layout[key2] for key1, key2 in edges], dtype=torch.float)
+    
+    # Create tensor containing [x_0, y_0, x_1, y_1] for each edge
+    edge_coordinates = torch.tensor([layout[key1] + layout[key2] for key1, key2 in edges], dtype=torch.float, device=device)
 
     counter = 0
 
-    # for edges [x1,y1,x2,y2] and [x3,y3,x4,y4] formula for intersection is
-    # x = det1 * (x3 - x4) - (x1 - x2) * det2 / (x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4)
-    # y = det1 * (y3 - y4) - (y1 - y2) * det2 / (x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4)
-    # where
-    # det1 = x1 * y2 - y1 * x2
-    # det2 = x3 * y4 - y3 * x4
-
     for edge in edges:
-        # initialize matrix containing the intersection coordinates for every edges and the current edge or the lines defined by the edges (if existant)
-        intersection_coordinates = torch.zeros((edge_coordinates.shape[0],2))
-        # initialize matrix containing bool if edges intersect 
-        intersections = torch.zeros((edge_coordinates.shape[0]), dtype=torch.bool)
+        intersection_coordinates = torch.zeros((edge_coordinates.shape[0], 2), device=device)
+        intersections = torch.zeros((edge_coordinates.shape[0]), dtype=torch.bool, device=device)
 
-        current_edge_coordinates = torch.tensor(layout[edge[0]] + layout[edge[1]], dtype=torch.float)
-        current_edge_dx = current_edge_coordinates[0] - current_edge_coordinates[2] # x1 - x2
-        current_edge_dy = current_edge_coordinates[1] - current_edge_coordinates[3] # y1 - y2
+        current_edge_coordinates = torch.tensor(layout[edge[0]] + layout[edge[1]], dtype=torch.float, device=device)
+        current_edge_dx = current_edge_coordinates[0] - current_edge_coordinates[2]  # x1 - x2
+        current_edge_dy = current_edge_coordinates[1] - current_edge_coordinates[3]  # y1 - y2
 
-        # determine denomitator
+        # Determine denominator
         dx = edge_coordinates[:, 0] - edge_coordinates[:, 2]  # x1 - x2
         dy = edge_coordinates[:, 1] - edge_coordinates[:, 3]  # y1 - y2
 
-        # denominator = (x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4)
         denominator = (current_edge_dx * dy) - (current_edge_dy * dx)
 
-        # denominator == 0 if edges are parallel and therefor the lines definied by the edges don't intersect -> build mask to ignore them
-        mask = ~torch.isclose(denominator, torch.tensor(0.0))
+        mask = ~torch.isclose(denominator, torch.tensor(0.0, device=device))
 
-        # determine determinant for nummerator, det= x1 * y2 - y1 * x2
         det1 = current_edge_coordinates[0] * current_edge_coordinates[3] - current_edge_coordinates[1] * current_edge_coordinates[2]
-        det2 = edge_coordinates[:,0] * edge_coordinates[:,3] - edge_coordinates[:,1] * edge_coordinates[:,2]
+        det2 = edge_coordinates[:, 0] * edge_coordinates[:, 3] - edge_coordinates[:, 1] * edge_coordinates[:, 2]
 
-        # initialize intersection coordinates 
-        x = torch.zeros_like(denominator)
-        y = torch.zeros_like(denominator)
+        # Initialize intersection coordinates 
+        x = torch.zeros_like(denominator, device=device)
+        y = torch.zeros_like(denominator, device=device)
 
-        # determine intersection of lines defined by edges
-        #det1 * (x3 - x4) - (x1 - x2) * det2
         nominator_x = det1 * dx - current_edge_dx * det2
         nominator_y = det1 * dy - current_edge_dy * det2
-        # calculate coordinates of intersections
         x[mask] = nominator_x[mask] / denominator[mask]
         y[mask] = nominator_y[mask] / denominator[mask]
         intersection_coordinates = torch.stack((x, y), dim=-1)
@@ -417,18 +419,19 @@ def edge_crossing(data: pp.TemporalGraph | pp.PathData, layout: dict):
         max_current_x = torch.maximum(current_edge_coordinates[0], current_edge_coordinates[2])
         max_current_y = torch.maximum(current_edge_coordinates[1], current_edge_coordinates[3])
 
-        # check whether the intersections are on edge segment
         valid_intersections = within_bounds(min_edges_x, max_edges_x, min_edges_y, max_edges_y, intersection_coordinates) & \
                             within_bounds(min_current_x, max_current_x, min_current_y, max_current_y, intersection_coordinates)
-        # check whether the intersections are on edge and not on nodes 
-        valid_intersections &= is_not_endpoint(edge_coordinates.T, intersection_coordinates) & is_not_endpoint(current_edge_coordinates, intersection_coordinates)
+        
+        valid_intersections &= is_not_endpoint(edge_coordinates.T, intersection_coordinates) & \
+                               is_not_endpoint(current_edge_coordinates, intersection_coordinates)
 
-        # increase counter by number of valid intersections
         counter += torch.sum(valid_intersections[mask])
 
-    # every intersection was countzed twice
-    return counter/2
+    return counter / 2
 
+
+import torch
+import pathpyG as pp
 
 def cluster_distance_ratio(graph: pp.TemporalGraph, cluster: list, layout: dict):
     """
@@ -449,11 +452,15 @@ def cluster_distance_ratio(graph: pp.TemporalGraph, cluster: list, layout: dict)
         tensor([0.85, 0.92, 1.10])
     """
 
-    distance_clusters = torch.zeros(len(cluster))
-    for idx,c in enumerate(cluster):
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    
+    distance_clusters = torch.zeros(len(cluster), device=device)
+    for idx, c in enumerate(cluster):
         barycentre_cluster = barycentre(layout, c)
-        mean_distance_cluster = torch.mean(torch.stack([torch.norm(torch.tensor(layout[node])-barycentre_cluster) for node in c])) 
-        mean_distance_all = torch.mean(torch.stack([torch.norm(torch.tensor(layout[node])-barycentre_cluster) for node in graph.nodes])) 
+        # Calculate distances for nodes in the cluster
+        mean_distance_cluster = torch.mean(torch.stack([torch.norm(torch.tensor(layout[node], device=device)-barycentre_cluster) for node in c])) 
+        # Calculate distances for all nodes in the graph
+        mean_distance_all = torch.mean(torch.stack([torch.norm(torch.tensor(layout[node], device=device)-barycentre_cluster) for node in graph.nodes])) 
         distance_clusters[idx] = mean_distance_cluster / mean_distance_all
     
     return distance_clusters
@@ -475,34 +482,34 @@ def random_walk_temporal_graph(graph: pp.TemporalGraph, delta: int = 1, steps: l
         >>> paths = random_walk_temporal_graph(temporal_graph, delta=2, steps=[5, 10], runs=[2, 3])
     """
 
-    # create higher order model of order 2
-    g_ho = pp.MultiOrderModel.from_temporal_graph(graph, delta = delta, max_order=2, cached=False).layers[2]
-    # get instance of RandomWalk
+    # Create higher order model of order 2
+    g_ho = pp.MultiOrderModel.from_temporal_graph(graph, delta=delta, max_order=2, cached=False).layers[2]
+    # Get instance of RandomWalk
     rw = pp.processes.RandomWalk(g_ho, weight='edge_weight', restart_prob=0.0)
-    # get instance of PathData
+    # Get instance of PathData
     paths = pp.PathData(graph.mapping)
-    # for every step number and corresponding run number
-    for s,r in zip(steps, runs):
-        # create r paths on higher order model with s-1 steps
+    
+    for s, r in zip(steps, runs):
+        # Create r paths on higher order model with s-1 steps
         current_steps_paths = rw.get_paths(rw.run_experiment(steps=s-1, runs=r))
-        # for every path
+        
         for idx in range(current_steps_paths.num_paths):
-            # get path
+            # Get path
             current_path_ho = current_steps_paths.get_walk(idx)
-            # start curret path with nodes of first node in higher order model
             current_path = [current_path_ho[0][0], current_path_ho[0][1]]
-            # iterate through higher order path as long as it is a real path (sometimes we jump anywhere in case there is no other possibility)
+            
             i = 1
             while i < len(current_path_ho) and (current_path_ho[i][0] == current_path[-1]):
-                    # check if we stayed on the same node -> skip
-                    if not current_path_ho[i][0] == current_path_ho[i][1]:
-                        # append node
-                        current_path.append(current_path_ho[i][1])
-                    i += 1
-            # created append path to PathData object
+                # Check if we stayed on the same node -> skip
+                if not current_path_ho[i][0] == current_path_ho[i][1]:
+                    # Append node
+                    current_path.append(current_path_ho[i][1])
+                i += 1
+            # Append path to PathData object
             paths.append_walk(current_path)
             
     return paths
+
 
 
 

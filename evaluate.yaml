@@ -7,7 +7,7 @@ spec:
     spec:
       containers:
         - name: *jobname # gets read as "test-job" as it links to the variable definition above
-          image: ls6-stud-registry.informatik.uni-wuerzburg.de/julius.schneller/evaluation_mlnets
+          image: ls6-stud-registry.informatik.uni-wuerzburg.de/s376005/pathpyg_hotvis:0.0.1
           imagePullPolicy: "Always"
           env:
             - name: HF_HOME

@@ -294,30 +294,30 @@ layout_adam, worked_adam = Adam_stress_torch(synthetic_graph, iterations=500, de
 print("Adam created")
 layout_torch, worked_torch = SGD_stress_torch(synthetic_graph, iterations=200, delta=DELTA, learning_rate=0.001)
 print("SGD torch created")
-layout_2 = HotVis(synthetic_graph, 2, 50000, DELTA, alpha=[1, 0.5], force=10)
+layout_2 = HotVis(synthetic_graph, 2, 50000, DELTA, alpha= torch.tensor([1, 0.5]), force=10)
 print("Layout 2 created")
-layout_3 = HotVis(synthetic_graph, 3, 50000, DELTA, alpha=[1, 0.5, 0.3], force=10)
+layout_3 = HotVis(synthetic_graph, 3, 50000, DELTA, alpha= torch.tensor([1, 0.5, 0.3]), force=10)
 print("Layout 3 created")
-layout_5 = HotVis(synthetic_graph, 5, 50000, DELTA, alpha=[1, 0.5, 0.3, 0.25, 0.2], force=10)
+layout_5 = HotVis(synthetic_graph, 5, 50000, DELTA, alpha= torch.tensor([1, 0.5, 0.3, 0.25, 0.2]), force=10)
 print("Layout 5 created")
 
 ## plot
 graph = synthetic_graph.to_static_graph()
 print("static graph created")
 pp.plot(graph, layout=layout_2, backend='matplotlib', filename=FILENAME_PLOT + "layout_2", **style_synthetic)
-print("1th plot cerated")
+print("1th plot created")
 pp.plot(graph, layout=layout_3, backend='matplotlib', filename=FILENAME_PLOT + "layout_3", **style_synthetic)
-print("2th plot cerated")
+print("2th plot created")
 pp.plot(graph, layout=layout_5, backend='matplotlib', filename=FILENAME_PLOT + "layout_5", **style_synthetic)
-print("3th plot cerated")
+print("3th plot created")
 pp.plot(graph, layout=layout_paper, backend='matplotlib', filename=FILENAME_PLOT + "layout_paper", **style_synthetic)
-print("4th plot cerated")
+print("4th plot created")
 pp.plot(graph, layout=layout_adam, backend='matplotlib', filename=FILENAME_PLOT + "layout_adam", **style_synthetic)
-print("5th plot cerated")
+print("5th plot created")
 pp.plot(graph, layout=layout_torch, backend='matplotlib', filename=FILENAME_PLOT + "layout_torch", **style_synthetic)
-print("6th plot cerated")
+print("6th plot created")
 pp.plot(graph, layout=layout_fr, backend='matplotlib', filename=FILENAME_PLOT + "layout_fr", **style_synthetic)
-print("7th plot cerated")
+print("7th plot created")
 
 results = eval(synthetic_graph, layout_2, layout_3, layout_5, layout_paper, layout_adam, layout_torch, layout_fr, DELTA, clusters)
 
@@ -345,7 +345,7 @@ print("Dataset finished.")
 FILENAME_PLOT = "src/pathpyG/visualisations/Project_JS/evaluation/plots/high_school/high_school_"
 DELTA = 62
 
-highschool_graph = pp.io.read_csv_temporal_graph('src/pathpyG/visualisations/Project_JS/graphs/Highschool/proximity/edges.csv', is_undirected = False, timestamp_format='%S')
+highschool_graph = pp.io.read_csv_temporal_graph('src/pathpyG/visualisations/Project_JS/graphs/Highschool/proximity/edges.csv', is_undirected = True, timestamp_format='%S')
 # load metadata
 meta_data = pd.read_csv("src/pathpyG/visualisations/Project_JS/graphs/Highschool/proximity/nodes.csv")
 
@@ -380,9 +380,9 @@ layout_paper, worked_paper = SGD_stress_paper(highschool_graph, iterations=30, d
 layout_adam, worked_adam = Adam_stress_torch(highschool_graph, iterations=500, delta=DELTA, learning_rate=0.5)
 layout_torch, worked_torch = SGD_stress_torch(highschool_graph, iterations=200, delta=DELTA, learning_rate=0.001)
 
-layout_2 = HotVis(highschool_graph, 2, 50000, DELTA, alpha=[1, 0.5], force=10)
-layout_3 = HotVis(highschool_graph, 3, 50000, DELTA, alpha=[1, 0.5, 0.3], force=10)
-layout_5 = HotVis(highschool_graph, 5, 50000, DELTA, alpha=[1, 0.5, 0.3, 0.25, 0.2], force=10)
+layout_2 = HotVis(highschool_graph, 2, 50000, DELTA, alpha= torch.tensor([1, 0.5]), force=10)
+layout_3 = HotVis(highschool_graph, 3, 50000, DELTA, alpha= torch.tensor([1, 0.5, 0.3]), force=10)
+layout_5 = HotVis(highschool_graph, 5, 50000, DELTA, alpha= torch.tensor([1, 0.5, 0.3, 0.25, 0.2]), force=10)
 
 
 ## plot
@@ -453,9 +453,9 @@ layout_paper, worked_paper = SGD_stress_paper(hospital_graph, iterations=30, del
 layout_adam, worked_adam = Adam_stress_torch(hospital_graph, iterations=500, delta=DELTA, learning_rate=0.5)
 layout_torch, worked_torch = SGD_stress_torch(hospital_graph, iterations=200, delta=DELTA, learning_rate=0.001)
 
-layout_2 = HotVis(hospital_graph, 2, 50000, DELTA, alpha=[1, 0.5], force=10)
-layout_3 = HotVis(hospital_graph, 3, 50000, DELTA, alpha=[1, 0.5, 0.3], force=10)
-layout_5 = HotVis(hospital_graph, 5, 50000, DELTA, alpha=[1, 0.5, 0.3, 0.25, 0.2], force=10)
+layout_2 = HotVis(hospital_graph, 2, 50000, DELTA, alpha= torch.tensor([1, 0.5]), force=10)
+layout_3 = HotVis(hospital_graph, 3, 50000, DELTA, alpha= torch.tensor([1, 0.5, 0.3]), force=10)
+layout_5 = HotVis(hospital_graph, 5, 50000, DELTA, alpha= torch.tensor([1, 0.5, 0.3, 0.25, 0.2]), force=10)
 
 
 ## plot
@@ -529,9 +529,9 @@ layout_paper, worked_paper = SGD_stress_paper(office_graph, iterations=30, delta
 layout_adam, worked_adam = Adam_stress_torch(office_graph, iterations=500, delta=DELTA, learning_rate=0.5)
 layout_torch, worked_torch = SGD_stress_torch(office_graph, iterations=200, delta=DELTA, learning_rate=0.001)
 
-layout_2 = HotVis(office_graph, 2, 50000, DELTA, alpha=[1, 0.5], force=10)
-layout_3 = HotVis(office_graph, 3, 50000, DELTA, alpha=[1, 0.5, 0.3], force=10)
-layout_5 = HotVis(office_graph, 5, 50000, DELTA, alpha=[1, 0.5, 0.3, 0.25, 0.2], force=10)
+layout_2 = HotVis(office_graph, 2, 50000, DELTA, alpha= torch.tensor([1, 0.5]), force=10)
+layout_3 = HotVis(office_graph, 3, 50000, DELTA, alpha= torch.tensor([1, 0.5, 0.3]), force=10)
+layout_5 = HotVis(office_graph, 5, 50000, DELTA, alpha= torch.tensor([1, 0.5, 0.3, 0.25, 0.2]), force=10)
 
 #layout_fr = pp.visualisations.layout(net, layout='fr')
 
@@ -584,9 +584,9 @@ layout_paper, worked_paper = SGD_stress_paper(tube, iterations=30, delta=DELTA, 
 layout_adam, worked_adam = Adam_stress_torch(tube, iterations=500, delta=DELTA, learning_rate=0.5)
 layout_torch, worked_torch = SGD_stress_torch(tube, iterations=200, delta=DELTA, learning_rate=0.001)
 
-layout_2 = HotVis(tube, 2, 50000, DELTA, alpha=[1, 0.5], force=10)
-layout_3 =  HotVis(tube, 3, 50000, DELTA, alpha=[1, 0.5, 0.3], force=10)
-layout_5 =  HotVis(tube, 5, 50000, DELTA, alpha=[1, 0.5, 0.3, 0.25, 0.2], force=10)
+layout_2 = HotVis(tube, 2, 50000, DELTA, alpha= torch.tensor([1, 0.5]), force=10)
+layout_3 =  HotVis(tube, 3, 50000, DELTA, alpha= torch.tensor([1, 0.5, 0.3]), force=10)
+layout_5 =  HotVis(tube, 5, 50000, DELTA, alpha= torch.tensor([1, 0.5, 0.3, 0.25, 0.2]), force=10)
 
 ## plot
 pp.plot(graph, layout=layout_2, backend='matplotlib', filename=FILENAME_PLOT + "layout_2", **style)
@@ -633,9 +633,9 @@ layout_paper, worked_paper = SGD_stress_paper(wiki, iterations=30, delta=DELTA, 
 layout_adam, worked_adam = Adam_stress_torch(wiki, iterations=500, delta=DELTA, learning_rate=0.5)
 layout_torch, worked_torch = SGD_stress_torch(wiki, iterations=200, delta=DELTA, learning_rate=0.001)
 
-layout_2 = HotVis(wiki, 2, 50000, DELTA, alpha=[1, 0.5], force=10)
-layout_3 =  HotVis(wiki, 3, 50000, DELTA, alpha=[1, 0.5, 0.3], force=10)
-layout_5 =  HotVis(wiki, 5, 50000, DELTA, alpha=[1, 0.5, 0.3, 0.25, 0.2], force=10)
+layout_2 = HotVis(wiki, 2, 50000, DELTA, alpha= torch.tensor([1, 0.5]), force=10)
+layout_3 =  HotVis(wiki, 3, 50000, DELTA, alpha= torch.tensor([1, 0.5, 0.3]), force=10)
+layout_5 =  HotVis(wiki, 5, 50000, DELTA, alpha= torch.tensor([1, 0.5, 0.3, 0.25, 0.2]), force=10)
 
 ## plot
 pp.plot(graph, layout=layout_2, backend='matplotlib', filename=FILENAME_PLOT + "layout_2", **style)
@@ -683,9 +683,9 @@ layout_paper, worked_paper = SGD_stress_paper(flights, iterations=30, delta=DELT
 layout_adam, worked_adam = Adam_stress_torch(flights, iterations=500, delta=DELTA, learning_rate=0.5)
 layout_torch, worked_torch = SGD_stress_torch(flights, iterations=200, delta=DELTA, learning_rate=0.001)
 
-layout_2 = HotVis(flights, 2, 50000, DELTA, alpha=[1, 0.5], force=10)
-layout_3 =  HotVis(flights, 3, 50000, DELTA, alpha=[1, 0.5, 0.3], force=10)
-layout_5 =  HotVis(flights, 5, 50000, DELTA, alpha=[1, 0.5, 0.3, 0.25, 0.2], force=10)
+layout_2 = HotVis(flights, 2, 50000, DELTA, alpha= torch.tensor([1, 0.5]), force=10)
+layout_3 =  HotVis(flights, 3, 50000, DELTA, alpha= torch.tensor([1, 0.5, 0.3]), force=10)
+layout_5 =  HotVis(flights, 5, 50000, DELTA, alpha= torch.tensor([1, 0.5, 0.3, 0.25, 0.2]), force=10)
 
 
 ## plot
