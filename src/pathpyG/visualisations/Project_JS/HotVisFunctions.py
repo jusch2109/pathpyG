@@ -4,14 +4,8 @@ import pathpyG as pp
 from typing import Iterable, Union, Any, Optional
 
 
-import torch
-import torch_geometric
-import pathpyG as pp
-from typing import Union
-
-
 def HotVis(
-    data: Union[pp.TemporalGraph, pp.PathData], 
+    data: pp.TemporalGraph| pp.PathData, 
     orders: int, 
     iterations: int, 
     delta: int, 
@@ -53,18 +47,27 @@ def HotVis(
     # Adjacency matrix on device
     A = torch.zeros((mo_model.layers[1].n, mo_model.layers[1].n), device=device)
 
+    print("Starting loop one")
+
     # Iterate over higher orders
     for i in range(orders):
+        print("Get higher order model")
         ho_graph = mo_model.layers[i + 1]
-
+        print("Get edge indices")
+        edge_index = torch.tensor(ho_graph.data.edge_index, device=device)
         # Get start and end nodes of higher-order edges
-        nodes_start = ho_graph.data.node_sequence[:, 0][ho_graph.data.edge_index[0]].to(device)
-        nodes_end = ho_graph.data.node_sequence[:, -1][ho_graph.data.edge_index[1]].to(device)
+        print("get nodes start")
+        nodes_start = torch.tensor(ho_graph.data.node_sequence[:, 0][edge_index[0]], device=device)
+        print("get nodes end")
+        nodes_end =  torch.tensor(ho_graph.data.node_sequence[:, -1][edge_index[1]], device=device)
+        print("get indices")
         indices = torch.stack((nodes_start, nodes_end), dim=0).to(device)
-
+        print("get edge weights")
         # Edge weights
         edge_weights = ho_graph['edge_weight'].to(device)
+        print("coalsece")
         indices, edge_weights = torch_geometric.utils.coalesce(indices, edge_weights)
+        print("update A")
         A[indices[0], indices[1]] += alpha[i] * edge_weights
 
     # Position update
@@ -72,31 +75,43 @@ def HotVis(
     t = 0.1
     dt = t / float(iterations + 1)
 
+    print("second loop")
     for _ in pp.tqdm(range(iterations)):
         # Difference between points
+        print("calulate delta")
         delta = positions.unsqueeze(1) - positions.unsqueeze(0)
 
         # Distance and its inverse
+        print("calculate distance")
         distance = torch.linalg.norm(delta, dim=-1)
+        print("clip")
         torch.clip(distance, 0.01, None, out=distance)
 
         # Displacement
+        print("calculate displacement")
         displacement = torch.einsum('ijk,ij->ik', delta,
                                     (A * distance / force - force**2 / distance**2))
 
         # Normalize displacement length
+        print("get langth")
         length = torch.linalg.norm(displacement, dim=-1)
+        print("cut length")
         length = torch.where(length < 0.01, 0.1, length)
+        print("include temp")
         length_with_temp = torch.clamp(length, max=t)
 
         # Update positions
+        print("get delta")
         delta_positions = displacement * (length_with_temp / length).unsqueeze(-1)
+        print("update positions")
         positions += delta_positions
 
         # Cool temperature
+        print("update t")
         t -= dt
 
     # Create layout dictionary
+    print("create layout")
     layout = {node: positions[mo_model.layers[1].mapping.to_idx(node)].tolist() 
               for node in mo_model.layers[1].nodes}
 
@@ -126,9 +141,6 @@ def barycentre(layout: dict, nodes=None):
     
     return torch.mean(node_positions, dim=0)
 
-
-import torch
-import pathpyG as pp
 
 def causal_path_dispersion(data: pp.TemporalGraph|pp.PathData, layout: dict, delta: int = 1, steps: list = [], runs: list = []):
     """
@@ -185,8 +197,6 @@ def causal_path_dispersion(data: pp.TemporalGraph|pp.PathData, layout: dict, del
     return numerator / denominator
 
 
-import torch
-import pathpyG as pp
 
 def closeness_centrality_paths(paths: pp.PathData):
     """
@@ -430,8 +440,6 @@ def edge_crossing(data: pp.TemporalGraph | pp.PathData, layout: dict):
     return counter / 2
 
 
-import torch
-import pathpyG as pp
 
 def cluster_distance_ratio(graph: pp.TemporalGraph, cluster: list, layout: dict):
     """

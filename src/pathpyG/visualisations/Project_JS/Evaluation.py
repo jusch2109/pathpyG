@@ -14,6 +14,11 @@ import csv
 
 FILENAME_METRIC = "src/pathpyG/visualisations/Project_JS/evaluation/metrics/metrics.txt"
 
+if torch.cuda.is_available():
+    print("Running on cuda")
+else:
+    print("Running on cpu")
+
 def from_ngram(file: str, sep: str = ",") -> pp.PathData:
     with open(file, "r", encoding="utf-8") as f:
         paths = [line.strip().split(sep) for line in f if len(line.strip().split(sep)) > 1]
@@ -250,7 +255,7 @@ style['edge_opacity'] = 0.3
 
 
 ###################################### Synthetic Graph ######################################################
-
+'''
 FILENAME_PLOT = "src/pathpyG/visualisations/Project_JS/evaluation/plots/synthetic_graph/synthetic_graph_"
 DELTA = 1
 
@@ -343,9 +348,9 @@ print("Dataset finished.")
 ###################################### High School ######################################################
 
 FILENAME_PLOT = "src/pathpyG/visualisations/Project_JS/evaluation/plots/high_school/high_school_"
-DELTA = 62
+DELTA = 75
 
-highschool_graph = pp.io.read_csv_temporal_graph('src/pathpyG/visualisations/Project_JS/graphs/Highschool/proximity/edges.csv', is_undirected = True, timestamp_format='%S')
+highschool_graph = pp.io.read_csv_temporal_graph('src/pathpyG/visualisations/Project_JS/graphs/Highschool/proximity/edges_shortened.csv', is_undirected=True, timestamp_format='%S')
 # load metadata
 meta_data = pd.read_csv("src/pathpyG/visualisations/Project_JS/graphs/Highschool/proximity/nodes.csv")
 
@@ -376,13 +381,18 @@ print("Creating layouts.")
 layout_fr = pp.layout(highschool_graph.to_static_graph(), layout='fr')
 layout_fr = {key: value.tolist() for key, value in layout_fr.items()}
 print("Layout FR created")
+
+layout_5 = HotVis(highschool_graph, 5, 50000, DELTA, alpha= torch.tensor([1, 0.5, 0.3, 0.25, 0.2]), force=10)
+layout_3 = HotVis(highschool_graph, 3, 50000, DELTA, alpha= torch.tensor([1, 0.5, 0.3]), force=10)
+layout_2 = HotVis(highschool_graph, 2, 50000, DELTA, alpha= torch.tensor([1, 0.5]), force=10)
+
 layout_paper, worked_paper = SGD_stress_paper(highschool_graph, iterations=30, delta=DELTA, learning_rate=0.01)
 layout_adam, worked_adam = Adam_stress_torch(highschool_graph, iterations=500, delta=DELTA, learning_rate=0.5)
 layout_torch, worked_torch = SGD_stress_torch(highschool_graph, iterations=200, delta=DELTA, learning_rate=0.001)
 
-layout_2 = HotVis(highschool_graph, 2, 50000, DELTA, alpha= torch.tensor([1, 0.5]), force=10)
-layout_3 = HotVis(highschool_graph, 3, 50000, DELTA, alpha= torch.tensor([1, 0.5, 0.3]), force=10)
-layout_5 = HotVis(highschool_graph, 5, 50000, DELTA, alpha= torch.tensor([1, 0.5, 0.3, 0.25, 0.2]), force=10)
+
+
+
 
 
 ## plot
@@ -716,3 +726,4 @@ with open(FILENAME_METRIC, 'a') as file:
         file.write("The graph wasn't connected, so the SGD torch versions returned random layout")
 
 print("Dataset finished.")
+'''
