@@ -2,6 +2,7 @@ import torch
 import torch_geometric
 import pathpyG as pp
 from typing import Iterable, Union, Any, Optional
+import time
 
 
 def HotVis(
@@ -47,27 +48,19 @@ def HotVis(
     # Adjacency matrix on device
     A = torch.zeros((mo_model.layers[1].n, mo_model.layers[1].n), device=device)
 
-    print("Starting loop one")
 
     # Iterate over higher orders
     for i in range(orders):
-        print("Get higher order model")
         ho_graph = mo_model.layers[i + 1]
-        print("Get edge indices")
         edge_index = torch.tensor(ho_graph.data.edge_index, device=device)
+        node_sequence = torch.tensor(ho_graph.data.node_sequence, device=device)
         # Get start and end nodes of higher-order edges
-        print("get nodes start")
-        nodes_start = torch.tensor(ho_graph.data.node_sequence[:, 0][edge_index[0]], device=device)
-        print("get nodes end")
-        nodes_end =  torch.tensor(ho_graph.data.node_sequence[:, -1][edge_index[1]], device=device)
-        print("get indices")
+        nodes_start = torch.tensor(node_sequence[:, 0][edge_index[0]], device=device)
+        nodes_end =  torch.tensor(node_sequence[:, -1][edge_index[1]], device=device)
         indices = torch.stack((nodes_start, nodes_end), dim=0).to(device)
-        print("get edge weights")
         # Edge weights
         edge_weights = ho_graph['edge_weight'].to(device)
-        print("coalsece")
         indices, edge_weights = torch_geometric.utils.coalesce(indices, edge_weights)
-        print("update A")
         A[indices[0], indices[1]] += alpha[i] * edge_weights
 
     # Position update
@@ -75,43 +68,31 @@ def HotVis(
     t = 0.1
     dt = t / float(iterations + 1)
 
-    print("second loop")
     for _ in pp.tqdm(range(iterations)):
         # Difference between points
-        print("calulate delta")
         delta = positions.unsqueeze(1) - positions.unsqueeze(0)
 
         # Distance and its inverse
-        print("calculate distance")
         distance = torch.linalg.norm(delta, dim=-1)
-        print("clip")
         torch.clip(distance, 0.01, None, out=distance)
 
         # Displacement
-        print("calculate displacement")
         displacement = torch.einsum('ijk,ij->ik', delta,
                                     (A * distance / force - force**2 / distance**2))
 
         # Normalize displacement length
-        print("get langth")
         length = torch.linalg.norm(displacement, dim=-1)
-        print("cut length")
         length = torch.where(length < 0.01, 0.1, length)
-        print("include temp")
         length_with_temp = torch.clamp(length, max=t)
 
         # Update positions
-        print("get delta")
         delta_positions = displacement * (length_with_temp / length).unsqueeze(-1)
-        print("update positions")
         positions += delta_positions
 
         # Cool temperature
-        print("update t")
         t -= dt
 
     # Create layout dictionary
-    print("create layout")
     layout = {node: positions[mo_model.layers[1].mapping.to_idx(node)].tolist() 
               for node in mo_model.layers[1].nodes}
 
@@ -527,6 +508,118 @@ def random_walk_temporal_graph(graph: pp.TemporalGraph, delta: int = 1, steps: l
 ########################## Functions you don't need, but which I wrote in the process of the project ###########################
 
 #################################################################################################################################
+
+def HotVis_time(
+    data: pp.TemporalGraph | pp.PathData,
+    orders: int,
+    iterations: int,
+    delta: int,
+    alpha: torch.Tensor = None,
+    initial_positions: torch.Tensor = None,
+    force: int = 1
+) -> dict:
+    """
+    Generates a layout for visualizing a temporal graph or path data using a force-directed model. (GPU compatible)
+
+    Args:
+        data: TemporalGraph or PathData for which the layout is to be created.
+        orders: Number of higher orders to consider.
+        iterations: Number of iterations for the optimization.
+        delta: Time window for paths in the temporal graph.
+        alpha: Tensor of weights for each order (optional).
+        initial_positions: Initial positions of nodes (optional).
+        force: Controls the repulsive and attractive forces (default is 1).
+
+    Returns:
+        dict: Dictionary mapping nodes to their 2D positions in the layout.
+    """
+    def log_with_timing(message, start_time=None):
+        """Logs a message with timing information."""
+        current_time = time.time()
+        if start_time is not None:
+            elapsed_time = current_time - start_time
+            print(f"{message} (Elapsed: {elapsed_time:.4f} seconds)")
+        else:
+            print(message)
+        return current_time
+
+    # Select device
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+    if isinstance(data, pp.TemporalGraph):
+        mo_model = pp.MultiOrderModel.from_temporal_graph(data, delta=delta, max_order=orders)
+    elif isinstance(data, pp.PathData):
+        mo_model = pp.MultiOrderModel.from_PathData(data, max_order=orders)
+    else:
+        raise ValueError("Input data must be of type `pp.TemporalGraph` or `pp.PathData`.")
+
+    # Initialize alpha and initial positions
+    alpha = alpha.to(device) if alpha is not None else torch.ones(orders, device=device)
+    initial_positions = (initial_positions.to(device)
+                         if initial_positions is not None
+                         else torch.rand((mo_model.layers[1].n, 2), device=device) * 100)
+    
+    # Adjacency matrix on device
+    A = torch.zeros((mo_model.layers[1].n, mo_model.layers[1].n), device=device)
+
+    start_time = log_with_timing("Starting loop one")
+
+    # Iterate over higher orders
+    for i in range(orders):
+        ho_graph = mo_model.layers[i + 1]
+        start_time = log_with_timing("Get higher order model", start_time)
+        edge_index = torch.tensor(ho_graph.data.edge_index, device=device)
+        start_time = log_with_timing("Get edge indices", start_time)
+        node_sequence = torch.tensor(ho_graph.data.node_sequence, device=device)
+        start_time = log_with_timing("Get node sequence", start_time)
+        nodes_start = torch.tensor(node_sequence[:, 0][edge_index[0]], device=device)
+        start_time = log_with_timing("Get nodes start", start_time)
+        nodes_end = torch.tensor(node_sequence[:, -1][edge_index[1]], device=device)
+        start_time = log_with_timing("Get nodes end", start_time)
+        indices = torch.stack((nodes_start, nodes_end), dim=0).to(device)
+        start_time = log_with_timing("Get indices", start_time)
+        edge_weights = ho_graph['edge_weight'].to(device)
+        start_time = log_with_timing("Get edge weights", start_time)
+        indices, edge_weights = torch_geometric.utils.coalesce(indices, edge_weights)
+        start_time = log_with_timing("Coalesce", start_time)
+        A[indices[0], indices[1]] += alpha[i] * edge_weights
+        start_time = log_with_timing("Update A", start_time)
+
+    positions = initial_positions
+    t = 0.1
+    dt = t / float(iterations + 1)
+
+    start_time = log_with_timing("Starting second loop")
+
+    for _ in pp.tqdm(range(iterations)):
+        delta = positions.unsqueeze(1) - positions.unsqueeze(0)
+        start_time = log_with_timing("Calculate delta", start_time)
+        distance = torch.linalg.norm(delta, dim=-1)
+        start_time = log_with_timing("Calculate distance", start_time)
+        torch.clip(distance, 0.01, None, out=distance)
+        start_time = log_with_timing("Clip", start_time)
+        displacement = torch.einsum('ijk,ij->ik', delta,
+                                    (A * distance / force - force**2 / distance**2))
+        start_time = log_with_timing("Calculate displacement", start_time)
+        length = torch.linalg.norm(displacement, dim=-1)
+        start_time = log_with_timing("Get length", start_time)
+        length = torch.where(length < 0.01, 0.1, length)
+        start_time = log_with_timing("Cut length", start_time)
+        length_with_temp = torch.clamp(length, max=t)
+        start_time = log_with_timing("Include temp", start_time)
+        delta_positions = displacement * (length_with_temp / length).unsqueeze(-1)
+        start_time = log_with_timing("Get delta", start_time)
+        positions += delta_positions
+        start_time = log_with_timing("Update positions", start_time)
+        t -= dt
+        start_time = log_with_timing("Update t", start_time)
+
+    layout = {node: positions[mo_model.layers[1].mapping.to_idx(node)].tolist()
+              for node in mo_model.layers[1].nodes}
+    start_time = log_with_timing("Create layout", start_time)
+
+    return layout
+
 
 # slow but easier to understand
 def HotVisSlow(data: pp.TemporalGraph | pp.PathData, orders: int, iterations: int, delta: int, 

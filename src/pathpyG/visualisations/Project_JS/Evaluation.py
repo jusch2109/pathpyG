@@ -255,7 +255,7 @@ style['edge_opacity'] = 0.3
 
 
 ###################################### Synthetic Graph ######################################################
-'''
+
 FILENAME_PLOT = "src/pathpyG/visualisations/Project_JS/evaluation/plots/synthetic_graph/synthetic_graph_"
 DELTA = 1
 
@@ -293,18 +293,20 @@ layout_fr = pp.layout(synthetic_graph.to_static_graph(), layout='fr')
 layout_fr = {key: value.tolist() for key, value in layout_fr.items()}
 print("Layout FR created")
 
-layout_paper, worked_paper = SGD_stress_paper(synthetic_graph, iterations=30, delta=DELTA, learning_rate=0.01)
-print("SGD Paper created")
-layout_adam, worked_adam = Adam_stress_torch(synthetic_graph, iterations=500, delta=DELTA, learning_rate=0.5)
-print("Adam created")
-layout_torch, worked_torch = SGD_stress_torch(synthetic_graph, iterations=200, delta=DELTA, learning_rate=0.001)
-print("SGD torch created")
 layout_2 = HotVis(synthetic_graph, 2, 50000, DELTA, alpha= torch.tensor([1, 0.5]), force=10)
 print("Layout 2 created")
 layout_3 = HotVis(synthetic_graph, 3, 50000, DELTA, alpha= torch.tensor([1, 0.5, 0.3]), force=10)
 print("Layout 3 created")
 layout_5 = HotVis(synthetic_graph, 5, 50000, DELTA, alpha= torch.tensor([1, 0.5, 0.3, 0.25, 0.2]), force=10)
 print("Layout 5 created")
+
+layout_paper = SGD_stress_paper(synthetic_graph, iterations=30, delta=DELTA, learning_rate=0.01)
+print("SGD Paper created")
+layout_adam = Adam_stress_torch(synthetic_graph, iterations=500, delta=DELTA, learning_rate=0.5)
+print("Adam created")
+layout_torch = SGD_stress_torch(synthetic_graph, iterations=200, delta=DELTA, learning_rate=0.001)
+print("SGD torch created")
+
 
 ## plot
 graph = synthetic_graph.to_static_graph()
@@ -335,16 +337,10 @@ with open(FILENAME_METRIC, 'a') as file:
     for description, value in results.items():
         # Align descriptions using ljust
         file.write(f"{description.ljust(max_length)} : {value}\n")
-    if not worked_paper:
-        file.write("The graph wasn't connected, so the SGD paper versions returned random layout")
-    if not worked_adam:
-        file.write("The graph wasn't connected, so the SGD adam versions returned random layout")
-    if not worked_torch:
-        file.write("The graph wasn't connected, so the SGD torch versions returned random layout")
 
 print("Dataset finished.")
 
-'''
+
 ###################################### High School ######################################################
 
 FILENAME_PLOT = "src/pathpyG/visualisations/Project_JS/evaluation/plots/high_school/high_school_"
@@ -386,9 +382,9 @@ layout_5 = HotVis(highschool_graph, 5, 50000, DELTA, alpha= torch.tensor([1, 0.5
 layout_3 = HotVis(highschool_graph, 3, 50000, DELTA, alpha= torch.tensor([1, 0.5, 0.3]), force=10)
 layout_2 = HotVis(highschool_graph, 2, 50000, DELTA, alpha= torch.tensor([1, 0.5]), force=10)
 
-layout_paper, worked_paper = SGD_stress_paper(highschool_graph, iterations=30, delta=DELTA, learning_rate=0.01)
-layout_adam, worked_adam = Adam_stress_torch(highschool_graph, iterations=500, delta=DELTA, learning_rate=0.5)
-layout_torch, worked_torch = SGD_stress_torch(highschool_graph, iterations=200, delta=DELTA, learning_rate=0.001)
+layout_paper = SGD_stress_paper(highschool_graph, iterations=30, delta=DELTA, learning_rate=0.01)
+layout_adam = Adam_stress_torch(highschool_graph, iterations=500, delta=DELTA, learning_rate=0.5)
+layout_torch = SGD_stress_torch(highschool_graph, iterations=200, delta=DELTA, learning_rate=0.001)
 
 
 
@@ -414,12 +410,6 @@ with open(FILENAME_METRIC, 'a') as file:
     for description, value in results.items():
         # Align descriptions using ljust
         file.write(f"{description.ljust(max_length)} : {value}\n")
-    if not worked_paper:
-        file.write("The graph wasn't connected, so the SGD paper versions returned random layout")
-    if not worked_adam:
-        file.write("The graph wasn't connected, so the SGD adam versions returned random layout")
-    if not worked_torch:
-        file.write("The graph wasn't connected, so the SGD torch versions returned random layout")
 
 print("Dataset finished.")
 
@@ -459,9 +449,9 @@ style_hospital['edge_opacity'] = 0.3
 print("Creating layouts.")
 layout_fr = pp.layout(hospital_graph.to_static_graph(), layout='fr')
 layout_fr = {key: value.tolist() for key, value in layout_fr.items()}
-layout_paper, worked_paper = SGD_stress_paper(hospital_graph, iterations=30, delta=DELTA, learning_rate=0.01)
-layout_adam, worked_adam = Adam_stress_torch(hospital_graph, iterations=500, delta=DELTA, learning_rate=0.5)
-layout_torch, worked_torch = SGD_stress_torch(hospital_graph, iterations=200, delta=DELTA, learning_rate=0.001)
+layout_paper = SGD_stress_paper(hospital_graph, iterations=30, delta=DELTA, learning_rate=0.01)
+layout_adam = Adam_stress_torch(hospital_graph, iterations=500, delta=DELTA, learning_rate=0.5)
+layout_torch = SGD_stress_torch(hospital_graph, iterations=200, delta=DELTA, learning_rate=0.001)
 
 layout_2 = HotVis(hospital_graph, 2, 50000, DELTA, alpha= torch.tensor([1, 0.5]), force=10)
 layout_3 = HotVis(hospital_graph, 3, 50000, DELTA, alpha= torch.tensor([1, 0.5, 0.3]), force=10)
@@ -490,16 +480,10 @@ with open(FILENAME_METRIC, 'a') as file:
     for description, value in results.items():
         # Align descriptions using ljust
         file.write(f"{description.ljust(max_length)} : {value}\n")
-    if not worked_paper:
-        file.write("The graph wasn't connected, so the SGD paper versions returned random layout")
-    if not worked_adam:
-        file.write("The graph wasn't connected, so the SGD adam versions returned random layout")
-    if not worked_torch:
-        file.write("The graph wasn't connected, so the SGD torch versions returned random layout")
 
 print("Dataset finished.")
 
-'''
+
 ###################################### Office ######################################################
 
 FILENAME_PLOT = "src/pathpyG/visualisations/Project_JS/evaluation/plots/office/office_"
@@ -535,9 +519,9 @@ style_office['edge_opacity'] = 0.3
 print("Creating layouts.")
 layout_fr = pp.layout(office_graph.to_static_graph(), layout='fr')
 layout_fr = {key: value.tolist() for key, value in layout_fr.items()}
-layout_paper, worked_paper = SGD_stress_paper(office_graph, iterations=30, delta=DELTA, learning_rate=0.01)
-layout_adam, worked_adam = Adam_stress_torch(office_graph, iterations=500, delta=DELTA, learning_rate=0.5)
-layout_torch, worked_torch = SGD_stress_torch(office_graph, iterations=200, delta=DELTA, learning_rate=0.001)
+layout_paper = SGD_stress_paper(office_graph, iterations=30, delta=DELTA, learning_rate=0.01)
+layout_adam = Adam_stress_torch(office_graph, iterations=500, delta=DELTA, learning_rate=0.5)
+layout_torch = SGD_stress_torch(office_graph, iterations=200, delta=DELTA, learning_rate=0.001)
 
 layout_2 = HotVis(office_graph, 2, 50000, DELTA, alpha= torch.tensor([1, 0.5]), force=10)
 layout_3 = HotVis(office_graph, 3, 50000, DELTA, alpha= torch.tensor([1, 0.5, 0.3]), force=10)
@@ -566,12 +550,6 @@ with open(FILENAME_METRIC, 'a') as file:
         # Align descriptions using ljust
         file.write(f"{description.ljust(max_length)} : {value}\n")
 
-    if not worked_paper:
-        file.write("The graph wasn't connected, so the SGD paper versions returned random layout")
-    if not worked_adam:
-        file.write("The graph wasn't connected, so the SGD adam versions returned random layout")
-    if not worked_torch:
-        file.write("The graph wasn't connected, so the SGD torch versions returned random layout")
 
 print("Dataset finished.")
 
@@ -590,9 +568,9 @@ graph = pp.MultiOrderModel.from_PathData(tube, max_order=1).layers[1]
 print("Creating layouts.")
 layout_fr = pp.layout(graph, layout='fr')
 layout_fr = {key: value.tolist() for key, value in layout_fr.items()}
-layout_paper, worked_paper = SGD_stress_paper(tube, iterations=30, delta=DELTA, learning_rate=0.01)
-layout_adam, worked_adam = Adam_stress_torch(tube, iterations=500, delta=DELTA, learning_rate=0.5)
-layout_torch, worked_torch = SGD_stress_torch(tube, iterations=200, delta=DELTA, learning_rate=0.001)
+layout_paper = SGD_stress_paper(tube, iterations=30, delta=DELTA, learning_rate=0.01)
+layout_adam = Adam_stress_torch(tube, iterations=500, delta=DELTA, learning_rate=0.5)
+layout_torch = SGD_stress_torch(tube, iterations=200, delta=DELTA, learning_rate=0.001)
 
 layout_2 = HotVis(tube, 2, 50000, DELTA, alpha= torch.tensor([1, 0.5]), force=10)
 layout_3 =  HotVis(tube, 3, 50000, DELTA, alpha= torch.tensor([1, 0.5, 0.3]), force=10)
@@ -617,12 +595,6 @@ with open(FILENAME_METRIC, 'a') as file:
         # Align descriptions using ljust
         file.write(f"{description.ljust(max_length)} : {value}\n")
 
-    if not worked_paper:
-        file.write("The graph wasn't connected, so the SGD paper versions returned random layout")
-    if not worked_adam:
-        file.write("The graph wasn't connected, so the SGD adam versions returned random layout")
-    if not worked_torch:
-        file.write("The graph wasn't connected, so the SGD torch versions returned random layout")
 
 print("Dataset finished.")
 
@@ -639,9 +611,9 @@ print("Creating layouts.")
 graph = pp.MultiOrderModel.from_PathData(wiki, max_order=1).layers[1]
 layout_fr = pp.layout(graph, layout='fr')
 layout_fr = {key: value.tolist() for key, value in layout_fr.items()}
-layout_paper, worked_paper = SGD_stress_paper(wiki, iterations=30, delta=DELTA, learning_rate=0.01)
-layout_adam, worked_adam = Adam_stress_torch(wiki, iterations=500, delta=DELTA, learning_rate=0.5)
-layout_torch, worked_torch = SGD_stress_torch(wiki, iterations=200, delta=DELTA, learning_rate=0.001)
+layout_paper = SGD_stress_paper(wiki, iterations=30, delta=DELTA, learning_rate=0.01)
+layout_adam = Adam_stress_torch(wiki, iterations=500, delta=DELTA, learning_rate=0.5)
+layout_torch = SGD_stress_torch(wiki, iterations=200, delta=DELTA, learning_rate=0.001)
 
 layout_2 = HotVis(wiki, 2, 50000, DELTA, alpha= torch.tensor([1, 0.5]), force=10)
 layout_3 =  HotVis(wiki, 3, 50000, DELTA, alpha= torch.tensor([1, 0.5, 0.3]), force=10)
@@ -667,12 +639,6 @@ with open(FILENAME_METRIC, 'a') as file:
         # Align descriptions using ljust
         file.write(f"{description.ljust(max_length)} : {value}\n")
 
-    if not worked_paper:
-        file.write("The graph wasn't connected, so the SGD paper versions returned random layout")
-    if not worked_adam:
-        file.write("The graph wasn't connected, so the SGD adam versions returned random layout")
-    if not worked_torch:
-        file.write("The graph wasn't connected, so the SGD torch versions returned random layout")
 
 print("Dataset finished.")
 
@@ -689,9 +655,9 @@ print("Creating layouts.")
 graph = pp.MultiOrderModel.from_PathData(flights, max_order=1).layers[1]
 layout_fr = pp.layout(graph, layout='fr')
 layout_fr = {key: value.tolist() for key, value in layout_fr.items()}
-layout_paper, worked_paper = SGD_stress_paper(flights, iterations=30, delta=DELTA, learning_rate=0.01)
-layout_adam, worked_adam = Adam_stress_torch(flights, iterations=500, delta=DELTA, learning_rate=0.5)
-layout_torch, worked_torch = SGD_stress_torch(flights, iterations=200, delta=DELTA, learning_rate=0.001)
+layout_paper = SGD_stress_paper(flights, iterations=30, delta=DELTA, learning_rate=0.01)
+layout_adam = Adam_stress_torch(flights, iterations=500, delta=DELTA, learning_rate=0.5)
+layout_torch = SGD_stress_torch(flights, iterations=200, delta=DELTA, learning_rate=0.001)
 
 layout_2 = HotVis(flights, 2, 50000, DELTA, alpha= torch.tensor([1, 0.5]), force=10)
 layout_3 =  HotVis(flights, 3, 50000, DELTA, alpha= torch.tensor([1, 0.5, 0.3]), force=10)
@@ -718,12 +684,5 @@ with open(FILENAME_METRIC, 'a') as file:
         # Align descriptions using ljust
         file.write(f"{description.ljust(max_length)} : {value}\n")
     
-    if not worked_paper:
-        file.write("The graph wasn't connected, so the SGD paper versions returned random layout")
-    if not worked_adam:
-        file.write("The graph wasn't connected, so the SGD adam versions returned random layout")
-    if not worked_torch:
-        file.write("The graph wasn't connected, so the SGD torch versions returned random layout")
 
 print("Dataset finished.")
-'''
