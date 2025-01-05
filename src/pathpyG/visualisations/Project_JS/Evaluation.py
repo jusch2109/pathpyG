@@ -255,7 +255,7 @@ style['edge_opacity'] = 0.3
 
 
 ###################################### Synthetic Graph ######################################################
-
+'''
 FILENAME_PLOT = "src/pathpyG/visualisations/Project_JS/evaluation/plots/synthetic_graph/synthetic_graph_"
 DELTA = 1
 
@@ -483,16 +483,16 @@ with open(FILENAME_METRIC, 'a') as file:
 
 print("Dataset finished.")
 
-
+'''
 ###################################### Office ######################################################
 
 FILENAME_PLOT = "src/pathpyG/visualisations/Project_JS/evaluation/plots/office/office_"
 DELTA = 50
 
 # load graph
-office_graph = pp.io.read_csv_temporal_graph('src/pathpyG/visualisations/Project_JS/graphs/office/network/edges.csv', is_undirected=True, timestamp_format='%S')
+office_graph = pp.io.read_csv_temporal_graph('src/pathpyG/visualisations/Project_JS/graphs/Office/network/edges.csv', is_undirected=True, timestamp_format='%S')
 # load metadata
-meta_data = pd.read_csv("src/pathpyG/visualisations/Project_JS/graphs/office/network/nodes.csv")
+meta_data = pd.read_csv("src/pathpyG/visualisations/Project_JS/graphs/Office/network/nodes.csv")
 
 # get colors of nodes
 colors = {}
