@@ -5,31 +5,15 @@ from typing import Iterable, Union, Any, Optional
 import time
 
 
-def HotVis(
-    data: pp.TemporalGraph| pp.PathData, 
-    orders: int, 
-    iterations: int, 
-    delta: int, 
-    alpha: torch.Tensor = None, 
-    initial_positions: torch.Tensor = None, 
-    force: int = 1
-) -> dict:
+def HotVis(data: pp.TemporalGraph|pp.PathData, orders: int, iterations: int, delta: int, 
+           alpha: torch.Tensor | None = None, initial_positions: torch.Tensor | None = None, force: int = 1) -> dict:
+    
     """
-    Generates a layout for visualizing a temporal graph or path data using a force-directed model. (GPU compatible)
-
-    Args:
-        data: TemporalGraph or PathData for which the layout is to be created.
-        orders: Number of higher orders to consider.
-        iterations: Number of iterations for the optimization.
-        delta: Time window for paths in the temporal graph.
-        alpha: Tensor of weights for each order (optional).
-        initial_positions: Initial positions of nodes (optional).
-        force: Controls the repulsive and attractive forces (default is 1).
-
-    Returns:
-        dict: Dictionary mapping nodes to their 2D positions in the layout.
+    Generates a layout for visualizing a temporal graph or path data using a force-directed model. (following 
+    Perri, V., & Scholtes, I. (2020). HOTVis: Higher-Order Time-Aware Visualisation of Dynamic Graphs. arXiv. https://arxiv.org/abs/1908.05976)
     """
-    # Select device
+
+    # Select device (GPU if available, otherwise CPU)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     if isinstance(data, pp.TemporalGraph):
@@ -37,71 +21,74 @@ def HotVis(
     elif isinstance(data, pp.PathData):
         mo_model = pp.MultiOrderModel.from_PathData(data, max_order=orders)
     else:
-        raise ValueError("Input data must be of type `pp.TemporalGraph` or `pp.PathData`.")
+        return {}
 
-    # Initialize alpha and initial positions
-    alpha = alpha.to(device) if alpha is not None else torch.ones(orders, device=device)
-    initial_positions = (initial_positions.to(device) 
-                         if initial_positions is not None 
-                         else torch.rand((mo_model.layers[1].n, 2), device=device) * 100)
-    
-    # Adjacency matrix on device
+    # Initialize alpha and initial positions, and move them to the selected device
+    if alpha is None:
+        alpha = torch.ones(orders, device=device)
+    if initial_positions is None:
+        initial_positions = torch.rand((mo_model.layers[1].n, 2), device=device) * 100
     A = torch.zeros((mo_model.layers[1].n, mo_model.layers[1].n), device=device)
-
 
     # Iterate over higher orders
     for i in range(orders):
-        ho_graph = mo_model.layers[i + 1]
-        edge_index = torch.tensor(ho_graph.data.edge_index, device=device)
-        node_sequence = torch.tensor(ho_graph.data.node_sequence, device=device)
-        # Get start and end nodes of higher-order edges
-        nodes_start = torch.tensor(node_sequence[:, 0][edge_index[0]], device=device)
-        nodes_end =  torch.tensor(node_sequence[:, -1][edge_index[1]], device=device)
-        indices = torch.stack((nodes_start, nodes_end), dim=0).to(device)
-        # Edge weights
+        ho_graph = mo_model.layers[i+1]
+
+        # Move edge_index and node_sequence to the device
+        edge_index = torch.tensor(ho_graph.data.edge_index, device=device, dtype=torch.long)
+        node_sequence = torch.tensor(ho_graph.data.node_sequence, device=device, dtype=torch.long)
+
+        # Get the nodes corresponding to the edges
+        nodes_start = node_sequence[edge_index[0], 0]
+        nodes_end = node_sequence[edge_index[1], -1]
+        # Stack tensors for later use
+        indices = torch.stack((nodes_start, nodes_end), dim=0)
+        # Get edge weights
         edge_weights = ho_graph['edge_weight'].to(device)
+        # Remove duplicates while summing their weights
         indices, edge_weights = torch_geometric.utils.coalesce(indices, edge_weights)
+        # Add weights to adjacency matrix A
         A[indices[0], indices[1]] += alpha[i] * edge_weights
 
-    # Position update
     positions = initial_positions
     t = 0.1
     dt = t / float(iterations + 1)
 
-    for _ in pp.tqdm(range(iterations)):
-        # Difference between points
-        delta = positions.unsqueeze(1) - positions.unsqueeze(0)
+    # Initialize the difference matrix for positions
+    delta = torch.zeros((positions.shape[0], positions.shape[0], positions.shape[1]), device=device)
 
-        # Distance and its inverse
+    for _ in pp.tqdm(range(iterations)):
+        # Compute difference between positions
+        delta = positions[torch.newaxis, :, :] - positions[:, torch.newaxis, :]
+        # Calculate distance between points
         distance = torch.linalg.norm(delta, dim=-1)
         torch.clip(distance, 0.01, None, out=distance)
-
-        # Displacement
+        # Calculate displacement of all nodes
         displacement = torch.einsum('ijk,ij->ik', delta,
                                     (A * distance / force - force**2 / distance**2))
-
-        # Normalize displacement length
+        # Calculate length of displacements
         length = torch.linalg.norm(displacement, dim=-1)
         length = torch.where(length < 0.01, 0.1, length)
+        # Apply temperature (cooling effect)
         length_with_temp = torch.clamp(length, max=t)
-
         # Update positions
-        delta_positions = displacement * (length_with_temp / length).unsqueeze(-1)
+        delta_positions = torch.einsum('ij,i->ij', displacement, length_with_temp / length)
         positions += delta_positions
-
         # Cool temperature
         t -= dt
 
     # Create layout dictionary
-    layout = {node: positions[mo_model.layers[1].mapping.to_idx(node)].tolist() 
-              for node in mo_model.layers[1].nodes}
+    layout = {}
+    for node in mo_model.layers[1].nodes:
+        layout[node] = positions[mo_model.layers[1].mapping.to_idx(node)].tolist()
 
     return layout
 
 
+
 def barycentre(layout: dict, nodes=None):
     """
-    Computes the barycentre (geometric center) of a set of nodes in a given layout. (GPU compatible)
+    Computes the barycentre (geometric center) of a set of nodes in a given layout.
 
     Args:
         layout (dict): A dictionary mapping nodes to their 2D positions. 
@@ -519,7 +506,7 @@ def HotVis_time(
     force: int = 1
 ) -> dict:
     """
-    Generates a layout for visualizing a temporal graph or path data using a force-directed model. (GPU compatible)
+    Generates a layout for visualizing a temporal graph or path data using a force-directed model. prints the time used per step.
 
     Args:
         data: TemporalGraph or PathData for which the layout is to be created.

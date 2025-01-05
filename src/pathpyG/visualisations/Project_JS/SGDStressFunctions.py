@@ -51,6 +51,7 @@ def shortest_paths_path_data(path_data: pp.PathData):
 
     return dist
 
+
 def stress_loss(layout: torch.nn.Embedding | torch.Tensor, shortest_path_dist: torch.Tensor) -> float:
     """
     Computes the stress loss between the pairwise distances in a layout and the corresponding shortest path distances.
@@ -102,14 +103,14 @@ import pathpyG as pp
 
 def SGD_stress_torch(data: pp.TemporalGraph | pp.PathData, iterations: int, delta: int = 1, learning_rate: float = 0.01, initial_positions: torch.Tensor | None = None) -> dict:
     """
-    Performs stress minimization using stochastic gradient descent (SGD) to optimize the layout of nodes in a graph or path data.
+    Performs stress minimization using stochastic gradient descent (SGD) to optimize the layout of nodes in a temporal graph or path data.
 
     This method aims to learn a 2D layout for the nodes, such that the pairwise distances between nodes in the layout 
     are as close as possible to the given shortest path distances. It uses a stress function to measure the difference 
     between the layout distances and the original shortest path distances.
 
     Args:
-        data (pp.TemporalGraph or pp.PathData): The input graph or path data to be used for layout optimization.
+        data (pp.TemporalGraph or pp.PathData): The input temporal graph or path data to be used for layout optimization.
         iterations (int): The number of iterations for the optimization process.
         delta (int, optional): The temporal window size for paths in temporal graphs. Not considered for Pathdata objects. Default is 1.
         learning_rate (float, optional): The learning rate for the SGD optimizer. Default is 0.01.
@@ -178,7 +179,7 @@ def SGD_stress_torch(data: pp.TemporalGraph | pp.PathData, iterations: int, delt
 
 def Adam_stress_torch(data: pp.TemporalGraph | pp.PathData, iterations: int, delta: int = 1, learning_rate: float = 0.01, initial_positions: torch.Tensor | None = None):
     """
-    Performs stress minimization using the Adam optimizer to optimize the layout of nodes in a graph or path data.
+    Performs stress minimization using the Adam optimizer to optimize the layout of nodes in a temporal graph or path data.
 
     This method aims to learn a 2D layout for the nodes such that the pairwise distances between nodes in the layout
     are as close as possible to the given shortest path distances. It uses a stress function to measure the difference
@@ -186,7 +187,7 @@ def Adam_stress_torch(data: pp.TemporalGraph | pp.PathData, iterations: int, del
     optimization of the layout.
 
     Args:
-        data (pp.TemporalGraph or pp.PathData): The input graph or path data to be used for layout optimization.
+        data (pp.TemporalGraph or pp.PathData): The input temporal graph or path data to be used for layout optimization.
         iterations (int): The number of iterations for the optimization process.
         delta (int, optional): The temporal window size for paths in temporal graphs. Not considered for Pathdata objects. Default is 1.
         learning_rate (float, optional): The learning rate for the Adam optimizer. Default is 0.01.
@@ -254,20 +255,20 @@ def Adam_stress_torch(data: pp.TemporalGraph | pp.PathData, iterations: int, del
 
 def SGD_stress_paper(data: pp.TemporalGraph | pp.PathData, iterations: int, delta: int = 1, initial_positions: torch.Tensor | None = None, learning_rate: float = 0.01, eta: float = 1, decay: float = 0.5) -> dict:
     """
-    Performs stress minimization using Stochastic Gradient Descent (SGD) to optimize the layout of nodes in a graph or path data.
+    Performs stress minimization using Stochastic Gradient Descent (SGD) to optimize the layout of nodes in a temporal graph or path data.
 
     This method aims to learn a 2D layout for the nodes such that the pairwise distances between nodes in the layout 
     are as close as possible to the given shortest path distances. It uses a stress function to measure the difference 
     between the layout distances and the original shortest path distances. The optimizer updates the node positions 
     iteratively based on the gradient of the stress function.
 
-    The algorithm follows the paper: 
+    The algorithm is an adaption of the algorithm presented in paper: 
     Börsig, K., Brandes, U., Pasztor, B. (2020). Stochastic Gradient Descent Works Really Well for Stress Minimization. 
     In: Auber, D., Valtr, P. (eds) Graph Drawing and Network Visualization. GD 2020. Lecture Notes in Computer Science(), vol 12590. Springer, Cham. 
     https://doi.org/10.1007/978-3-030-68766-3_2
 
     Args:
-        data (pp.TemporalGraph or pp.PathData): The input graph or path data to be used for layout optimization.
+        data (pp.TemporalGraph or pp.PathData): The input temporal graph or path data to be used for layout optimization.
         iterations (int): The number of iterations for the optimization process.
         delta (int, optional): The temporal window size for temporal graphs. Not considered for Pathdata objects. Default is 1.
         initial_positions (torch.Tensor, optional): The initial 2D positions of the nodes for layout optimization. If None, random positions are used.
@@ -321,7 +322,7 @@ def SGD_stress_paper(data: pp.TemporalGraph | pp.PathData, iterations: int, delt
             # Get distance between pairs
             shortest_path_dist = dist[pair[0], pair[1]]
             # Skip if nodes are the same
-            if shortest_path_dist == 0:
+            if shortest_path_dist.item() == 0 or shortest_path_dist.item() == float("inf"):
                 continue
             # Calculate learning rate
             learning_rate = min(1, ((1 / (shortest_path_dist ** 2)) * step_width)) / 2

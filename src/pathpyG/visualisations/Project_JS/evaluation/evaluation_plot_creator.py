@@ -177,7 +177,8 @@ boxplot(cluster_distance_ratio_synthetic, "boxplot_office", "Cluster Distance Ra
 ####################################                    ####################################
 ############################################################################################
 
-remove_stress = ["Office", "Tube", "Wikipedia", 'Highschool', 'Hospital']
+#remove_stress = ["Office", "Tube", "Wikipedia", 'Highschool', 'Hospital']
+remove_stress = []
 
 # order: FR, HOTVIS 2, HOTVIS 3, HOTVIS 5, Stress Paper, Stress Adam, Stress Torch
 edge_crossing = {
