@@ -483,7 +483,7 @@ with open(FILENAME_METRIC, 'a') as file:
 
 print("Dataset finished.")
 
-'''
+
 ###################################### Office ######################################################
 
 FILENAME_PLOT = "src/pathpyG/visualisations/Project_JS/evaluation/plots/office/office_"
@@ -554,7 +554,7 @@ with open(FILENAME_METRIC, 'a') as file:
 print("Dataset finished.")
 
 
-
+'''
 ###################################### Tube ######################################################
 
 FILENAME_PLOT = "src/pathpyG/visualisations/Project_JS/evaluation/plots/tube/tube_"
