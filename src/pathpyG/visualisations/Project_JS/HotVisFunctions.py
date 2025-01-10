@@ -5,12 +5,27 @@ from typing import Iterable, Union, Any, Optional
 import time
 
 
-def HotVis(data: pp.TemporalGraph|pp.PathData, orders: int, iterations: int, delta: int, 
+def HotVis(data: pp.TemporalGraph|pp.PathData, orders: int, iterations: int, delta: int | None = None, 
            alpha: torch.Tensor | None = None, initial_positions: torch.Tensor | None = None, force: int = 1) -> dict:
     
     """
-    Generates a layout for visualizing a temporal graph or path data using a force-directed model. (following 
-    Perri, V., & Scholtes, I. (2020). HOTVis: Higher-Order Time-Aware Visualisation of Dynamic Graphs. arXiv. https://arxiv.org/abs/1908.05976)
+    Generates a layout for visualizing a temporal graph or path data using a force-directed model. 
+    The algorithm follows the approach outlined in Perri, V., & Scholtes, I. (2020). HOTVis: Higher-Order Time-Aware Visualisation of Dynamic Graphs. 
+    (https://arxiv.org/abs/1908.05976)
+
+    This method computes a 2D layout by iteratively adjusting node positions based on attraction and repulsion forces, considering higher-order relationships in temporal graphs or path data.
+
+    Args:
+        data (pp.TemporalGraph | pp.PathData): The temporal graph or path data for which the layout is to be generated.
+        orders (int): The number of higher-order relationships (layers) to consider in the graph.
+        iterations (int): The number of iterations for optimizing the layout.
+        delta (int | None, optional): The time window for paths in the temporal graph, influencing the causal path selection.
+        alpha (torch.Tensor | None, optional): A tensor of weights for each order (default is None, which sets uniform weights).
+        initial_positions (torch.Tensor | None, optional): The initial positions of the nodes in the layout (default is None, which sets random initial positions).
+        force (int, optional): A scalar that controls the repulsive and attractive forces in the layout (default is 1).
+
+    Returns:
+        dict: A dictionary mapping nodes to their 2D positions in the generated layout.
     """
 
     # Select device (GPU if available, otherwise CPU)

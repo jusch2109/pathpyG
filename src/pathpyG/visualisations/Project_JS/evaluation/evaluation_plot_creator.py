@@ -2,9 +2,7 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
-
-
-import matplotlib.pyplot as plt
+import copy
 
 
 def boxplot(data, filename, title, ylabel):
@@ -20,29 +18,23 @@ def boxplot(data, filename, title, ylabel):
     plt.xticks(ticks=range(len(data)), labels=data.keys(), rotation=45)
 
     plt.tight_layout()
-    plt.savefig("src/pathpyG/visualisations/Project_JS/evaluation/plots/boxplots/" + filename, dpi=300, bbox_inches='tight')
+    plt.savefig("src/pathpyG/visualisations/Project_JS/evaluation/plots/" + filename, dpi=300, bbox_inches='tight')
+    plt.close()
 
 
+def bar_chart(data, filename, title, value_title, methods_title, figsize =(6,6)):
 
-def bar_chart(data, filename, title, value):
-    methods = list(data.keys())
-    values = list(data.values())
-
-    plt.figure(figsize=(6, 6))
+    plt.figure(figsize=figsize)
     
-    # Balkenfarbe auf Dunkelblau setzen und die Breite anpassen
-    plt.bar(methods, values, color='#003366', width=0.4)
+    plt.bar(methods_title, data, color='#003366', width=0.4)
 
-    # Diagramm anpassen
     plt.title(title)
-    plt.xlabel('Methods')
-    plt.ylabel(value)
+    plt.ylabel(value_title)
     plt.xticks(rotation=45)
     plt.tight_layout()
 
-    # Diagramm speichern
-    plt.savefig("src/pathpyG/visualisations/Project_JS/evaluation/plots/bar_charts/" + filename, dpi=300, bbox_inches='tight')
-    
+    plt.savefig("src/pathpyG/visualisations/Project_JS/evaluation/plots/" + filename, dpi=300, bbox_inches='tight')
+    plt.close()
 
 
 def aggregate_hotvis(data):
@@ -51,17 +43,13 @@ def aggregate_hotvis(data):
         values[1:4] = [min_value] 
     return data
 
-def create_heatmap(data, filename, title, remove_stress=[]):
+def create_heatmap(data, filename, title):
     methods = ["Fruchtermann-Reingold", "HOTVis", "Stress Min. SGD", "Stress Min. Adam", "Stress Min. SGD Torch"]
 
-    data_aggregated = data.copy()
+    data_aggregated = copy.deepcopy(data)
     data_aggregated = aggregate_hotvis(data_aggregated)
 
     df = pd.DataFrame(data_aggregated, index=methods)
-
-    # remove stress minimizing results
-    for dataset in remove_stress:
-        df.loc[df.index[-3:], dataset] = df[dataset].min()
 
     # sclae values
     def min_max_scale(df):
@@ -70,19 +58,122 @@ def create_heatmap(data, filename, title, remove_stress=[]):
     scaled_df = min_max_scale(df)
 
 
-    plt.figure(figsize=(10, 6))
-    sns.heatmap(scaled_df, annot=False, cmap="Blues", cbar_kws={'label': title, 'ticks': [0, 1]}, cbar_ax=None)
+    plt.figure(figsize=(6, 4))
+    sns.heatmap(scaled_df, annot=False, cmap="Blues", cbar_kws={'label': title, 'ticks': [0, 1]}, cbar_ax=None, cbar=False)
 
-    cbar = plt.gca().collections[0].colorbar
-    cbar.set_ticks([0, 1000])
-    cbar.set_ticklabels(['Low', 'High'])
+    #cbar = plt.gca().collections[0].colorbar
+    #cbar.set_ticks([0, 1000])
+    #cbar.set_ticklabels(['Low', 'High'])
 
 
     plt.title(title)
-    plt.xlabel("Datasets")
-    plt.ylabel("Methods")
     plt.tight_layout()
     plt.savefig("src/pathpyG/visualisations/Project_JS/evaluation/plots/heatmaps/" + filename, dpi=300, bbox_inches='tight')
+    plt.close()
+
+
+############### data ############
+
+# order: FR, HOTVIS 2, HOTVIS 3, HOTVIS 5, Stress Paper, Stress Adam, Stress Torch
+
+edge_crossing = {
+    'Synthetic Graph': [22843, 22356, 22713, 22396, 23463, 23261, 23041],
+    'HighSchool': [5691, 6344, 6621, 8538, 7820, 8877, 15653],
+    'Hospital': [106955, 108437, 106345, 107218, 125042, 121986, 124209],
+    'Office': [23452, 24538, 25688, 26027, 50925, 39702, 31320],
+    'Tube': [219, 84, 111, 225, 181, 118, 2026],
+    'Wikipedia': [85797, 106710, 124770, 135610, 91168, 89146, 136188],
+    'Flights': [68189, 59035, 58626, 62315, 84047, 89160, 94107],
+}
+
+causal_path_dispersion = {
+    'Synthetic Graph': [0.813381, 0.801798, 0.794910, 0.836765, 0.824449, 0.822558, 0.823231],
+    'HighSchool': [0.120126, 0.050441, 0.033709, 0.019394, 0.179915, 0.241374, 0.307557],
+    'Hospital': [0.516470, 0.486110, 0.453289, 0.535620, 0.632957, 0.639486, 0.532366],
+    'Office': [0.377934, 0.430128, 0.439021, 0.426563, 0.610299, 0.580903, 0.477975],
+    'Tube': [0.594804, 0.486773, 0.493302, 0.464800, 0.509085, 0.488161, 0.542099],
+    'Wikipedia': [0.898011, 0.465788, 0.554954, 0.596721, 0.276180, 0.329340, 0.190717],
+    'Flights': [0.353946, 0.286163, 0.282987, 0.280552, 0.359986, 0.356310, 0.357503],
+}
+
+closeness_eccentricity = {
+    'Synthetic Graph': [1.066102, 0.805937, 1.070057, 1.118524, 0.981720, 1.055042, 1.151974],
+    'HighSchool': [0.501410, 0.452422, 0.495577, 0.490840, 0.469445, 0.818984, 0.306253],
+    'Hospital': [0.264690, 0.435542, 0.570272, 0.335727, 0.732924, 0.594882, 0.616378],
+    'Office': [0.731372, 0.612239, 0.710338, 0.612839, 0.737031, 0.869107, 0.639850],
+    'Tube': [0.513739, 0.305325, 0.343330, 0.410648, 0.526665, 0.310092, 0.244317],
+    'Wikipedia': [0.618225, 0.418665, 0.394499, 0.423687, 0.278606, 0.293343, 0.146485],
+    'Flights': [0.293634, 0.263079, 0.267177, 0.296842, 0.346378, 0.328997, 0.287378],
+}
+
+stress = {
+    'Synthetic Graph': [395.722, 1251.105, 1241.878, 1227.460, 66.934, 66.736, 66.987],
+    'HighSchool': [4636.800, 662191.0, 378685.969, 290050.781, 1758.104, 1287.413, 52910.031],
+    'Hospital': [1819.250, 21084.021, 11667.377, 3328.326, 538.288, 541.820, 746.759],
+    'Office': [747.402, 56938.457, 48996.328, 45603.281, 118.235, 122.668, 1661.183],
+    'Tube': [25925.785, 38145.805, 38525.199, 23512.275, 4108.923, 2353.260, 39731.566],
+    'Wikipedia': [40091.910, 4943849.0, 3969028.5, 2910347.25, 13949.055, 13476.835, 86547.531],
+    'Flights': [10709.918, 106873.398, 98559.539, 95085.430, 2312.675, 2347.256, 2442.145],
+}
+
+cluster_distance_ratio_synthetic = {
+        "Fruchtermann-Reingold": [0.9452, 1.0211, 0.9434],
+    "HOTVis 2": [0.4915, 0.5772, 0.5174],
+    "HOTVis 3": [0.5714, 0.6006, 0.5376],
+    "HOTVis 5": [0.6327, 0.7042, 0.5619],
+    "Stress Min. SGD": [0.9412, 1.0479, 0.9370],
+    "Stress Min. Adam": [0.7708, 0.9500, 1.0467],
+    "Stress Min. SGD Torch": [0.9456, 0.9723, 1.0138]
+
+}
+
+cluster_distance_ratio_highschool = {
+    "Fruchtermann-Reingold": [0.6684, 0.1245, 0.1896, 0.1576, 0.2977, 0.2469, 0.6083, 0.1899, 1.0744],
+    "HOTVis 2": [1.8490, 0.0551, 0.0716, 0.0627, 0.1498, 0.1245, 0.3516, 0.1227, 1.2090],
+    "HOTVis 3": [1.6322, 0.0318, 0.0434, 0.0432, 0.1120, 0.1026, 0.3207, 0.0972, 1.3683],
+    "HOTVis 5": [1.6456, 0.0180, 0.0221, 0.0370, 0.0996, 0.0813, 0.4408, 0.1020, 1.3998],
+    "Stress Min. SGD": [0.9377, 0.2127, 0.2573, 0.2696, 0.5244, 0.2957, 0.7653, 0.2556, 1.5685],
+    "Stress Min. Adam": [0.7813, 0.3451, 0.3172, 0.3506, 0.4894, 0.3764, 0.6899, 0.3826, 0.9058],
+    "Stress Min. SGD Torch": [1.2637, 0.2077, 0.2945, 0.4156, 0.8256, 0.8156, 0.9941, 0.6986, 1.2953]
+}
+
+cluster_distance_ratio_hospital = {
+    "Fruchtermann-Reingold": [0.7973, 0.2849, 0.6008, 1.1598],
+    "HOTVis 2": [1.0323, 0.4577, 0.6970, 1.2067],
+    "HOTVis 3": [0.7603, 0.2970, 0.6640, 1.2088],
+    "HOTVis 5": [1.3991, 0.2349, 0.6807, 1.1351],
+    "Stress Min. SGD": [0.9896, 0.7681, 0.6128, 1.3877],
+    "Stress Min. Adam": [0.9032, 0.8265, 0.6222, 1.3895],
+    "Stress Min. SGD Torch": [1.0010, 0.6647, 0.6532, 1.0732]
+}
+
+cluster_distance_ratio_office = {
+    "Fruchtermann-Reingold": [0.3853, 0.4907, 0.4551, 0.4876, 0.1822],
+    "HOTVis 2": [0.5400, 0.4073, 0.6413, 1.1908, 0.3100],
+    "HOTVis 3": [0.5137, 0.4508, 0.6636, 1.2128, 0.2472],
+    "HOTVis 5": [0.5161, 0.4355, 0.6754, 0.5952, 0.2096],
+    "Stress Min. SGD": [0.6794, 0.7911, 0.7581, 0.6729, 0.7214],
+    "Stress Min. Adam": [0.6591, 0.7057, 0.7636, 0.7226, 0.6942],
+    "Stress Min. SGD Torch": [0.7793, 0.6486, 0.8545, 0.8779, 0.4272]
+}
+
+
+
+#boxplot(cluster_distance_ratio_synthetic, "boxplot_office", "Cluster Distance Ratio Office Data", "Cluster Distance Ratio")
+############################################################################################
+####################################                    ####################################
+####################################      heatmaps      ####################################
+####################################                    ####################################
+############################################################################################
+
+
+create_heatmap(edge_crossing, "edge_crossing_heatmap", "Edge Crossing")
+
+create_heatmap(causal_path_dispersion, "causal_path_dispersion_heatmap", "Causal Path Dispersion")
+
+create_heatmap(closeness_eccentricity, "closeness_eccentricity_heatmap", "Closeness Eccentircity")
+
+create_heatmap(stress, "stress_heatmap", "Stress")
 
 
 ############################################################################################
@@ -90,59 +181,21 @@ def create_heatmap(data, filename, title, remove_stress=[]):
 ####################################     bar charts     ####################################
 ####################################                    ####################################
 ############################################################################################
-stress_values_synthetic = {
-    "HOTVis 2": 1258.125,
-    "HOTVis 3": 1244.7322998046875,
-    "HOTVis 5": 1224.0843505859375,
-    "Stress Min. SGD": 66.92721557617188,
-    "Stress Min. Adam": 66.73497772216797,
-    "Stress Min. SGD Torch": 66.91865539550781,
-    "Fruchtermann-Reingold": 395.5680236816406,
-}
 
-bar_chart(stress_values_synthetic, "stress_synthetic", "Stress Values Synthtic Dataset", "Stress Values")
+methods_names = ["Fruchtermann-Reingold", "HOTVis 2", "HOTVis 3", "HOTVis 5", "Stress Min. Baseline", "Stress Min. Torch Adam", "Stress Min. Torch SGD"]
+file_names = ["closeness_synthetic", "closeness_highschool", "closeness_hospital", "closeness_office", "closeness_tube", "closeness_wiki", "closeness_flights"]
+titles = ["Synthetic Dataset", "High School", "Hospital", "Office", "Tube", "Wikipedia", "Flights"]
+values = list(closeness_eccentricity.values())
 
-edge_crossing_office = {
-    "HOTVis 2": 29757,
-    "HOTVis 3": 22614,
-    "HOTVis 5": 24853,
-    "Fruchtermann-Reingold": 22437,
-}
+for i in range(len(values)):
+    bar_chart(values[i], "closeness_eccentricity/" + file_names[i], "Closeness Eccentricity " + titles[i] , "Closeness Eccentricity", methods_title=methods_names)
 
-bar_chart(edge_crossing_office, "edge_crossing_office", "Edge Crossing Office Dataset", "Edge Crosing")
+values = list(edge_crossing.values())
+file_names = ["edge_crossing_synthetic", "edge_crossing_highschool", "edge_crossing_hospital", "edge_crossing_office", "edge_crossing_tube", "edge_crossing_wiki", "edge_crossing_flights"]
 
-edge_crossing_tube = {
-    "HOTVis 2": 72,
-    "HOTVis 3": 127,
-    "HOTVis 5": 237,
-    "Fruchtermann-Reingold": 262,
-}
+for i in range(len(values)):
+    bar_chart(values[i][:4], "edge_crossing/" + file_names[i], "Edge Crossing " + titles[i] , "Edge Crossing", methods_title=methods_names[:4], figsize = (4, 4))
 
-bar_chart(edge_crossing_tube, "edge_crossing_tube", "Edge Crossing Tube Dataset", "Edge Crosing")
-
-closeness_eccentricity_flights = {
-    'HOTVis 2': 0.28546659810770825,
-    'HOTVis 3': 0.25304183256297436,
-    'HOTVis 5': 0.2611201009668535,
-    'Stress Min. SGD': 0.3342815217001675,
-    'Stress Min. Adam': 0.3395482963153705,
-    'Stress Min. SGD Torch': 0.3073269287798831,
-    'Fruchtermann-Reingold': 0.35214469779909907
-}
-
-bar_chart(closeness_eccentricity_flights, "closeness_eccentricity_flights", "Closeness Eccentricity Flights", "Closeness Eccentricity")
-
-causal_path_dispersion_flights = {
-    'HOTVis 2': 0.28537674407724717,
-    'HOTVis 3': 0.2811776374595373,
-    'HOTVis 5': 0.2816451431843459,
-    'Stress Min. SGD': 0.3527449258487508,
-    'Stress Min. Adam': 0.35512868840138523,
-    'Stress Min. SGD Torch': 0.3511580202933725,
-    'Fruchtermann-Reingold': 0.35385698767618246
-}
-
-bar_chart(causal_path_dispersion_flights, "causal_path_dispersion_flights", "Causal Path Dispersion Flights", "Causal Path Dispersion")
 
 ############################################################################################
 ####################################                    ####################################
@@ -150,74 +203,8 @@ bar_chart(causal_path_dispersion_flights, "causal_path_dispersion_flights", "Cau
 ####################################                    ####################################
 ############################################################################################
 
-cluster_distance_ratio_synthetic = {
-    "HOTVis 2": [0.5446, 0.4861, 0.5323],
-    "HOTVis 3": [0.5545, 0.5492, 0.5276],
-    "HOTVis 5": [0.5377, 0.8003, 0.8380],
-    "Stress Min. SGD": [0.7910, 0.7097, 1.0156],
-    "Stress Min. Adam" : [0.8446, 0.9854, 0.7929],
-    "Stress Min. SGD Torch": [0.9745, 0.9505, 1.0119],
-    "Fruchtermann-Reingold": [0.9567, 1.0054, 0.9228]
-}
+boxplot(cluster_distance_ratio_synthetic, "cluster_distance_ratio/cluster_duistance_ratio_synthetic", "Cluster Distance Ratio Synthetic Data", "Cluster Distance Ratio")
+boxplot(cluster_distance_ratio_highschool, "cluster_distance_ratio/cluster_duistance_ratio_highschool", "Cluster Distance Ratio Highschool", "Cluster Distance Ratio")
+boxplot(cluster_distance_ratio_hospital, "cluster_distance_ratio/cluster_duistance_ratio_hospital", "Cluster Distance Ratio Hospital", "Cluster Distance Ratio")
+boxplot(cluster_distance_ratio_office, "cluster_distance_ratio/cluster_duistance_ratio_office", "Cluster Distance Ratio Office", "Cluster Distance Ratio")
 
-boxplot(cluster_distance_ratio_synthetic, "boxplot_synthetic", "Cluster Distance Ratio Synthetic Data", "Cluster Distance Ratio")
-
-
-cluster_distance_ratio_office = {
-    "HOTVis 2": [0.5831, 0.4564, 0.6285, 0.8642, 0.3670],
-    "HOTVis 3": [0.4853, 0.4168, 0.5704, 0.4835, 0.2310],
-    "HOTVis 5": [0.5614, 0.4441, 0.6285, 0.4415, 0.2102],
-    "Fruchtermann-Reingold": [0.3998, 0.4373, 0.4503, 0.2718, 0.1809]
-}
-
-boxplot(cluster_distance_ratio_synthetic, "boxplot_office", "Cluster Distance Ratio Office Data", "Cluster Distance Ratio")
-############################################################################################
-####################################                    ####################################
-####################################      heatmaps      ####################################
-####################################                    ####################################
-############################################################################################
-
-#remove_stress = ["Office", "Tube", "Wikipedia", 'Highschool', 'Hospital']
-remove_stress = []
-
-# order: FR, HOTVIS 2, HOTVIS 3, HOTVIS 5, Stress Paper, Stress Adam, Stress Torch
-edge_crossing = {
-    'Synthetic Graph': [22772, 22584, 22567, 22496, 23427, 23174, 22909], 
-    'Office': [22437, 29757, 22614, 24853, 66020, 68764, 66898], 
-    'Tube': [262, 72, 127, 237, 11836, 12917, 12303], 
-    'Wikipedia': [89958, 120757, 134573, 124993, 226268, 237178, 221729], 
-    'Flights': [61184, 72235, 71611, 62526, 87778, 84562, 97415],
-    'Highschool' : [5661, 5936, 6362, 7875, 80590, 75971, 80356],
-    'Hospital': []
- }
-
-create_heatmap(edge_crossing, "edge_crossing_heatmap", "Edge Crossing", remove_stress)
-
-causal_path_dispersion = {
-    'Synthetic Graph': [0.8495024879251144, 0.8044899496400337, 0.8063295082640137, 0.8108884310861977, 0.8337478679217781, 0.8253319482912406, 0.8192977887530488], 
-    'Office': [0.35403453046994005, 0.4441712118439523, 0.3823763165405113, 0.3822591147406217, 0.6649192996148706, 0.7103102957374403, 0.7498126164916142], 
-    'Tube': [0.5458288844308957, 0.4896376949218661, 0.5210443097980572, 0.5576612339261361, 0.9602115526150503, 0.9299884178277121, 0.8864323679622664], 
-    'Wikipedia': [0.828137632034445, 0.5983817995840187, 0.5530487797434024, 0.4973251196381555, 1.0402130361071142, 0.833310015925265, 0.9276365521565368], 
-    'Flights': [0.35385698767618246, 0.28537674407724717, 0.2811776374595373, 0.2816451431843459, 0.3527449258487508, 0.35512868840138523, 0.3511580202933725],
-    'Highschool' : [0.12912287333251724, 0.044150490291686134, 0.03692216378598026, 0.0215969828517869, 0.79226092869011, 0.7719155053637443, 0.7735758227961815],
-    'Hospital': []
-}
-
-create_heatmap(causal_path_dispersion, "causal_path_dispersion_heatmap", "Causal Path Dispersion", remove_stress)
-
-closeness_eccentricity = {
-    'Synthetic Graph': [1.1068207157410448, 0.9194850213469012, 1.1506570660099176, 1.2433069175995686, 0.9536136109165133, 1.0245949741314972, 0.8680959348202881], 
-    'Office': [0.8200476454650562, 0.7921383884059948, 0.8278207641765829, 0.515536140595814, 0.8050763046553711, 0.9690875492183336, 1.133203401247905], 
-    'Tube': [0.5013855871539737, 0.3238235777171696, 0.338341671820004, 0.5134950988973279, 0.9618471412673553, 0.8437931369244194, 0.8876891454696505], 
-    'Wikipedia': [0.5958483458526941, 0.4475458688693087, 0.4512134376819096, 0.3811513354131433, 1.0610036526646478, 0.8619001076072907, 1.0125964440653348], 
-    'Flights': [0.35214469779909907, 0.28546659810770825, 0.25304183256297436, 0.2611201009668535, 0.3342815217001675, 0.3395482963153705, 0.3073269287798831],
-    'Highschool': [0.6168892440766709, 0.5077349144378733, 0.5041980849063269, 0.5377502409663389, 1.1071421498431089, 0.9682673302897055, 0.9281420469010454],
-
-}
-create_heatmap(closeness_eccentricity, "closeness_eccentricity_heatmap", "Closeness Eccentircity", remove_stress)
-
-stress = {
-    'Synthetic Graph': [395.5680236816406, 1258.125, 1244.7322998046875, 1224.0843505859375, 66.92721557617188, 66.73497772216797, 66.91865539550781], 
-    'Flights': [10613.9775390625, 101851.0703125, 96797.296875, 96103.703125, 2372.35009765625, 2329.656982421875, 2453.7080078125]
-}
-create_heatmap(stress, "stress_heatmap", "Stress")

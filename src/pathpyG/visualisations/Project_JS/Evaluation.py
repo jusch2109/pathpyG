@@ -255,7 +255,7 @@ style['edge_opacity'] = 0.3
 
 
 ###################################### Synthetic Graph ######################################################
-'''
+
 FILENAME_PLOT = "src/pathpyG/visualisations/Project_JS/evaluation/plots/synthetic_graph/synthetic_graph_"
 DELTA = 1
 
@@ -554,7 +554,7 @@ with open(FILENAME_METRIC, 'a') as file:
 print("Dataset finished.")
 
 
-'''
+
 ###################################### Tube ######################################################
 
 FILENAME_PLOT = "src/pathpyG/visualisations/Project_JS/evaluation/plots/tube/tube_"

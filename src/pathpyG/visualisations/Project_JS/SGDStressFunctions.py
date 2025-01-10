@@ -97,10 +97,6 @@ def stress_loss(layout: torch.nn.Embedding | torch.Tensor, shortest_path_dist: t
     return loss / 2
 
 
-
-import torch
-import pathpyG as pp
-
 def SGD_stress_torch(data: pp.TemporalGraph | pp.PathData, iterations: int, delta: int = 1, learning_rate: float = 0.01, initial_positions: torch.Tensor | None = None) -> dict:
     """
     Performs stress minimization using stochastic gradient descent (SGD) to optimize the layout of nodes in a temporal graph or path data.
